@@ -1,0 +1,6 @@
+{
+  "name": "Mapa Caquetá - Pastoral Social Florencia",
+  "description": "Mapa interactivo de labor humanitaria y puntos de interés de la Pastoral Social de Florencia en Caquetá desde 1986.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

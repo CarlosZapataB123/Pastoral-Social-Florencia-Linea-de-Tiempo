@@ -1,0 +1,106 @@
+@import "tailwindcss";
+
+/* Leaflet map styles */
+@import "leaflet/dist/leaflet.css";
+
+/* Ensure leaflet container fills 100% of parent */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  font-family: inherit;
+  background-color: #f3f4f6;
+}
+
+/* Custom Marker styling */
+.custom-point-marker {
+  background: transparent;
+  border: none;
+}
+
+/* Custom Leaflet Popups */
+.leaflet-popup-content-wrapper {
+  border-radius: 1rem;
+  padding: 0.25rem;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e7e5e4;
+}
+
+.leaflet-popup-content {
+  margin: 0.75rem;
+  line-height: 1.4;
+}
+
+/* Custom Municipality Label styling */
+.custom-muni-label {
+  background: transparent;
+  border: none;
+}
+
+/* Boundary Tooltip styling */
+.caqueta-tooltip {
+  background: rgba(255, 255, 255, 0.96) !important;
+  color: #1c1917 !important;
+  border: 1px solid #d6d3d1 !important;
+  border-radius: 0.5rem !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+  padding: 4px 8px !important;
+  font-family: inherit !important;
+}
+.caqueta-tooltip::before {
+  border-top-color: #d6d3d1 !important;
+}
+
+/* Print Optimization for Timeline Report */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #1c1917 !important;
+    font-size: 12pt;
+  }
+
+  /* Hide app navigation and controls during printing */
+  #app-header,
+  #filters-container,
+  .leaflet-container,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  #timeline-report-modal-overlay {
+    position: static !important;
+    background: none !important;
+    padding: 0 !important;
+    display: block !important;
+    overflow: visible !important;
+    inset: auto !important;
+    z-index: auto !important;
+  }
+
+  #timeline-report-container {
+    max-height: none !important;
+    height: auto !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: #ffffff !important;
+    overflow: visible !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  #printable-report-content {
+    padding: 0 !important;
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  /* Ensure timeline items do not split awkwardly across pages */
+  .timeline-item,
+  .item-card,
+  tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
+
