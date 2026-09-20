@@ -4,9 +4,23 @@ service cloud.firestore {
     // Permitir lectura y escritura de puntos de interés y categorías de Pastoral Social
     // para sincronización colaborativa entre el equipo
     match /points/{pointId} {
-      allow read, write: if true;
+      // Allow read and delete; reject creation or update of legacy demo seed items
+      allow read, delete: if true;
+      allow create, update: if !pointId.matches('^hist-.*');
     }
     match /categories/{categoryId} {
+      // Allow read and delete; reject creation or update of legacy default categories
+      allow read, delete: if true;
+      allow create, update: if !(categoryId in [
+        'cuidado_casa_comun',
+        'derechos_humanos_paz',
+        'emergencia_migracion',
+        'empoderamiento_femenino',
+        'infancia_juventud',
+        'seguridad_alimentaria'
+      ]);
+    }
+    match /population_types/{typeId} {
       allow read, write: if true;
     }
     match /settings/{settingId} {

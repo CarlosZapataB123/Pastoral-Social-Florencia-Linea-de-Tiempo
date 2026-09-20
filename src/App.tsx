@@ -71,19 +71,7 @@ export default function App() {
       pointsCollection,
       (snapshot) => {
         if (snapshot.empty) {
-          // If Firestore is empty, seed initial points seamlessly for the user
-          INITIAL_HISTORICAL_POINTS.forEach(async (initialPoint) => {
-            try {
-              await setDoc(doc(db, 'points', initialPoint.id), {
-                ...initialPoint,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-              });
-            } catch {
-              // Ignore if already being populated
-            }
-          });
-          setPoints(INITIAL_HISTORICAL_POINTS);
+          setPoints([]);
         } else {
           const loadedPoints: HumanitarianPoint[] = [];
           snapshot.forEach((docSnap) => {
@@ -93,9 +81,8 @@ export default function App() {
         }
       },
       (error) => {
-        console.warn('Firestore points listener fallback to local seed:', error);
-        // Fallback to initial historical points if offline
-        setPoints(INITIAL_HISTORICAL_POINTS);
+        console.warn('Firestore points listener error:', error);
+        setPoints([]);
       }
     );
 
@@ -105,15 +92,7 @@ export default function App() {
       categoriesCollection,
       (snapshot) => {
         if (snapshot.empty) {
-          // Seed default categories
-          DEFAULT_CATEGORIES.forEach(async (cat) => {
-            try {
-              await setDoc(doc(db, 'categories', cat.id), cat);
-            } catch {
-              // Ignore
-            }
-          });
-          setCategories(DEFAULT_CATEGORIES);
+          setCategories([]);
         } else {
           const loadedCats: PointCategory[] = [];
           snapshot.forEach((docSnap) => {
@@ -123,8 +102,8 @@ export default function App() {
         }
       },
       (error) => {
-        console.warn('Firestore categories listener fallback to local defaults:', error);
-        setCategories(DEFAULT_CATEGORIES);
+        console.warn('Firestore categories listener error:', error);
+        setCategories([]);
       }
     );
 
