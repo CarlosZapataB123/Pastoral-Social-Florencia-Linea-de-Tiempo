@@ -33,6 +33,7 @@ interface FiltersProps {
   totalFiltered: number;
   totalPoints: number;
   onOpenReport?: () => void;
+  onOpenCategoryManager?: () => void;
 }
 
 export const FilterBar: React.FC<FiltersProps> = ({
@@ -54,6 +55,7 @@ export const FilterBar: React.FC<FiltersProps> = ({
   totalFiltered,
   totalPoints,
   onOpenReport,
+  onOpenCategoryManager,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const currentYear = new Date().getFullYear();
@@ -103,23 +105,35 @@ export const FilterBar: React.FC<FiltersProps> = ({
         </select>
 
         {/* Category selector */}
-        <select
-          id="filter-category-select"
-          value={selectedCategoryId}
-          onChange={(e) => onSelectCategory(e.target.value)}
-          className="text-xs bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-1.5 font-medium text-stone-700 focus:outline-none focus:ring-1 focus:ring-amber-500"
-        >
-          <option value="all">
-            {categories.length > 0
-              ? `Todas las Líneas (${categories.length})`
-              : 'Líneas pastorales (0 creadas)'}
-          </option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
+        <div className="flex items-center gap-1">
+          <select
+            id="filter-category-select"
+            value={selectedCategoryId}
+            onChange={(e) => onSelectCategory(e.target.value)}
+            className="text-xs bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-1.5 font-medium text-stone-700 focus:outline-none focus:ring-1 focus:ring-amber-500"
+          >
+            <option value="all">
+              {categories.length > 0
+                ? `Todas las Líneas (${categories.length})`
+                : 'Líneas pastorales (0 creadas)'}
             </option>
-          ))}
-        </select>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+          {onOpenCategoryManager && (
+            <button
+              type="button"
+              onClick={onOpenCategoryManager}
+              className="p-1.5 text-stone-500 hover:text-amber-700 hover:bg-stone-100 rounded-xl transition border border-stone-200 bg-stone-50 shrink-0"
+              title="Administrar o eliminar líneas de trabajo"
+            >
+              <Tag className="w-3.5 h-3.5 text-amber-600" />
+            </button>
+          )}
+        </div>
 
         {/* Expand Advanced Filters */}
         <button

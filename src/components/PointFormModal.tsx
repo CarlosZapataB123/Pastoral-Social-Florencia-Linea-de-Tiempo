@@ -49,7 +49,44 @@ export const PointFormModal: React.FC<PointFormModalProps> = ({
   const [keyActionInput, setKeyActionInput] = useState('');
   const [keyActions, setKeyActions] = useState<string[]>(pointToEdit?.keyActions || []);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Sincronizar los campos cada vez que se abre el modal o cambia pointToEdit
+  useEffect(() => {
+    if (isOpen) {
+      if (pointToEdit) {
+        setTitle(pointToEdit.title || '');
+        setDescription(pointToEdit.description || '');
+        setMunicipality(pointToEdit.municipality || 'Florencia');
+        setCommunityOrVereda(pointToEdit.communityOrVereda || '');
+        setYear(pointToEdit.year || new Date().getFullYear());
+        setEndYear(pointToEdit.endYear);
+        setCategoryId(pointToEdit.categoryId || categories[0]?.id || '');
+        setSelectedPopulations(pointToEdit.populationTypes || []);
+        setBeneficiariesApprox(pointToEdit.beneficiariesApprox);
+        setStatus(pointToEdit.status || 'active');
+        setKeyActions(pointToEdit.keyActions || []);
+      } else {
+        setTitle('');
+        setDescription('');
+        setMunicipality('Florencia');
+        setCommunityOrVereda('');
+        setYear(new Date().getFullYear());
+        setEndYear(undefined);
+        setCategoryId(categories[0]?.id || '');
+        setSelectedPopulations([]);
+        setBeneficiariesApprox(undefined);
+        setStatus('active');
+        setKeyActions([]);
+      }
+      setError(null);
+      setShowDeleteConfirm(false);
+      setIsSaving(false);
+      setIsDeleting(false);
+    }
+  }, [isOpen, pointToEdit, categories]);
 
   // Quick inline add category
   const [isAddingInlineCategory, setIsAddingInlineCategory] = useState(false);
@@ -129,6 +166,19 @@ export const PointFormModal: React.FC<PointFormModalProps> = ({
       setError(err instanceof Error ? err.message : 'Error agregando tipo de población');
     } finally {
       setIsCreatingPop(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!pointToEdit || !onDelete) return;
+    try {
+      setIsDeleting(true);
+      setError(null);
+      await onDelete(pointToEdit.id);
+      onClose();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Error al eliminar el punto');
+      setIsDeleting(false);
     }
   };
 
@@ -578,26 +628,40 @@ export const PointFormModal: React.FC<PointFormModalProps> = ({
           </div>
 
           {/* Action Buttons */}
-          <div className="pt-4 border-t border-stone-100 flex items-center justify-between">
+          <div className="pt-4 border-t border-stone-100 flex flex-wrap items-center justify-between gap-2">
             {pointToEdit && onDelete ? (
-              <button
-                id="delete-point-btn"
-                type="button"
-                disabled={isSaving}
-                onClick={async () => {
-                  if (
-                    window.confirm('¿Seguro que deseas eliminar este punto de la base de datos?')
-                  ) {
-                    setIsSaving(true);
-                    await onDelete(pointToEdit.id);
-                    onClose();
-                  }
-                }}
-                className="text-xs text-rose-600 hover:text-rose-700 font-medium flex items-center gap-1 px-3 py-2 rounded-lg hover:bg-rose-50 transition"
-              >
-                <Trash2 className="w-4 h-4" />
-                Eliminar punto
-              </button>
+              showDeleteConfirm ? (
+                <div className="flex items-center gap-2 p-1.5 bg-rose-50 border border-rose-200 rounded-xl">
+                  <span className="text-xs text-rose-800 font-semibold px-1">¿Eliminar este punto?</span>
+                  <button
+                    type="button"
+                    disabled={isDeleting}
+                    onClick={handleConfirmDelete}
+                    className="px-2.5 py-1 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-lg shadow-xs transition disabled:opacity-50"
+                  >
+                    {isDeleting ? 'Eliminando...' : 'Sí, eliminar'}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isDeleting}
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="px-2 py-1 text-xs text-stone-600 hover:text-stone-800 rounded-lg"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              ) : (
+                <button
+                  id="delete-point-btn"
+                  type="button"
+                  disabled={isSaving || isDeleting}
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="text-xs text-rose-600 hover:text-rose-700 font-medium flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-rose-50 transition"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Eliminar punto
+                </button>
+              )
             ) : (
               <div />
             )}
@@ -606,7 +670,7 @@ export const PointFormModal: React.FC<PointFormModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                disabled={isSaving}
+                disabled={isSaving || isDeleting}
                 className="px-4 py-2 text-xs font-semibold text-stone-600 hover:text-stone-800 rounded-xl hover:bg-stone-100 transition"
               >
                 Cancelar
@@ -614,10 +678,14 @@ export const PointFormModal: React.FC<PointFormModalProps> = ({
               <button
                 id="save-point-submit-btn"
                 type="submit"
-                disabled={isSaving}
+                disabled={isSaving || isDeleting}
                 className="px-5 py-2 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-xs transition flex items-center gap-1.5 disabled:opacity-50"
               >
-                {isSaving ? 'Guardando...' : 'Guardar Punto en Mapa'}
+                {isSaving
+                  ? 'Guardando...'
+                  : pointToEdit
+                  ? 'Guardar Cambios'
+                  : 'Guardar Punto en Mapa'}
               </button>
             </div>
           </div>

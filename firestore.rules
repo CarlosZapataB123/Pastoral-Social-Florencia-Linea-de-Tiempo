@@ -4,20 +4,17 @@ service cloud.firestore {
     // Permitir lectura y escritura de puntos de interés y categorías de Pastoral Social
     // para sincronización colaborativa entre el equipo
     match /points/{pointId} {
-      // Allow read and delete; reject creation or update of legacy demo seed items
-      allow read, delete: if true;
-      allow create, update: if !pointId.matches('^hist-.*');
+      allow read, write: if true;
     }
     match /categories/{categoryId} {
-      // Allow read and delete; reject creation or update of legacy default categories
-      allow read, delete: if true;
-      allow create, update: if !(categoryId in [
-        'cuidado_casa_comun',
-        'derechos_humanos_paz',
-        'emergencia_migracion',
-        'empoderamiento_femenino',
-        'infancia_juventud',
-        'seguridad_alimentaria'
+      // Las 5 líneas institucionales actuales están protegidas: lectura y creación inicial permitidas, pero no edición ni eliminación
+      allow read, create: if true;
+      allow update, delete: if !(categoryId in [
+        'linea_pastoral_rural_tierra',
+        'linea_seguridad_soberania_alimentaria',
+        'linea_cuidado_justicia',
+        'linea_mujer',
+        'linea_comites_parroquiales'
       ]);
     }
     match /population_types/{typeId} {

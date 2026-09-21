@@ -4,12 +4,14 @@ import {
   onSnapshot,
   doc,
   setDoc,
+  updateDoc,
   deleteDoc,
   serverTimestamp,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { HumanitarianPoint, PointCategory } from './types';
 import {
+  CORE_PERMANENT_CATEGORIES,
   DEFAULT_CATEGORIES,
   INITIAL_HISTORICAL_POINTS,
   CAQUETA_MUNICIPALITIES,
@@ -91,19 +93,43 @@ export default function App() {
     const unsubscribeCategories = onSnapshot(
       categoriesCollection,
       (snapshot) => {
-        if (snapshot.empty) {
-          setCategories([]);
-        } else {
-          const loadedCats: PointCategory[] = [];
-          snapshot.forEach((docSnap) => {
-            loadedCats.push({ id: docSnap.id, ...docSnap.data() } as PointCategory);
-          });
-          setCategories(loadedCats);
-        }
+        const loadedCats: PointCategory[] = [];
+        snapshot.forEach((docSnap) => {
+          loadedCats.push({ id: docSnap.id, ...docSnap.data() } as PointCategory);
+        });
+
+        // Asegurar que las 5 líneas institucionales actuales estén siempre presentes en Firestore
+        CORE_PERMANENT_CATEGORIES.forEach(async (coreCat) => {
+          const exists = loadedCats.some((c) => c.id === coreCat.id);
+          if (!exists) {
+            try {
+              await setDoc(doc(db, 'categories', coreCat.id), coreCat);
+            } catch (err) {
+              console.warn('Error inicializando línea pastoral permanente:', coreCat.id, err);
+            }
+          }
+        });
+
+        // Ordenar primero las 5 líneas institucionales fijas (en orden 1 a 5) y luego las personalizadas
+        const coreIds = new Set(CORE_PERMANENT_CATEGORIES.map((c) => c.id));
+        const orderedCore = CORE_PERMANENT_CATEGORIES.map((coreCat) => {
+          const remote = loadedCats.find((c) => c.id === coreCat.id);
+          return {
+            ...coreCat,
+            ...(remote || {}),
+            name: coreCat.name,
+            description: coreCat.description,
+            color: coreCat.color,
+            isPermanent: true,
+          };
+        });
+        const customCats = loadedCats.filter((c) => !coreIds.has(c.id));
+
+        setCategories([...orderedCore, ...customCats]);
       },
       (error) => {
         console.warn('Firestore categories listener error:', error);
-        setCategories([]);
+        setCategories(CORE_PERMANENT_CATEGORIES);
       }
     );
 
@@ -225,24 +251,55 @@ export default function App() {
   const handleSavePoint = async (
     pointData: Omit<HumanitarianPoint, 'id' | 'createdAt' | 'updatedAt'>
   ) => {
-    const pointId = pointToEdit ? pointToEdit.id : `pt_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const pointId = pointToEdit
+      ? pointToEdit.id
+      : `pt_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     const pointRef = doc(db, 'points', pointId);
 
-    const payload: Partial<HumanitarianPoint> = {
-      ...pointData,
+    // Construir un payload limpio sin valores 'undefined' que puedan causar error en Firestore
+    const cleanPayload: Record<string, any> = {
       id: pointId,
+      title: pointData.title.trim(),
+      description: pointData.description ? pointData.description.trim() : '',
+      municipality: pointData.municipality || 'Florencia',
+      communityOrVereda: pointData.communityOrVereda ? pointData.communityOrVereda.trim() : '',
+      lat: Number(pointData.lat),
+      lng: Number(pointData.lng),
+      year: Number(pointData.year),
+      categoryId: pointData.categoryId,
+      status: pointData.status || 'active',
+      populationTypes: Array.isArray(pointData.populationTypes) ? pointData.populationTypes : [],
+      keyActions: Array.isArray(pointData.keyActions) ? pointData.keyActions : [],
       updatedAt: new Date().toISOString(),
-      ...(pointToEdit ? {} : { createdAt: new Date().toISOString() }),
+      createdAt: pointToEdit?.createdAt || new Date().toISOString(),
     };
 
-    await setDoc(pointRef, payload, { merge: true });
+    if (typeof pointData.endYear === 'number' && !isNaN(pointData.endYear) && pointData.endYear > 0) {
+      cleanPayload.endYear = pointData.endYear;
+    }
+
+    if (
+      typeof pointData.beneficiariesApprox === 'number' &&
+      !isNaN(pointData.beneficiariesApprox) &&
+      pointData.beneficiariesApprox > 0
+    ) {
+      cleanPayload.beneficiariesApprox = pointData.beneficiariesApprox;
+    }
+
+    // Guardar el documento completo en Firestore
+    await setDoc(pointRef, cleanPayload);
     setSelectedPointId(pointId);
+    setPointToEdit(null);
   };
 
   const handleDeletePoint = async (pointId: string) => {
     await deleteDoc(doc(db, 'points', pointId));
     if (selectedPointId === pointId) {
       setSelectedPointId(null);
+    }
+    if (pointToEdit?.id === pointId) {
+      setPointToEdit(null);
+      setIsPointModalOpen(false);
     }
   };
 
@@ -252,12 +309,28 @@ export default function App() {
     const newCat: PointCategory = {
       ...catData,
       id,
+      isPermanent: false,
     };
     await setDoc(doc(db, 'categories', id), newCat);
     return newCat;
   };
 
+  const handleUpdateCategory = async (
+    catId: string,
+    catData: Partial<Omit<PointCategory, 'id' | 'isPermanent'>>
+  ) => {
+    if (CORE_PERMANENT_CATEGORIES.some((c) => c.id === catId)) {
+      throw new Error('Las 5 líneas de trabajo actuales son institucionales y no se pueden modificar.');
+    }
+    await updateDoc(doc(db, 'categories', catId), {
+      ...catData,
+    });
+  };
+
   const handleDeleteCategory = async (catId: string) => {
+    if (CORE_PERMANENT_CATEGORIES.some((c) => c.id === catId)) {
+      throw new Error('Las 5 líneas de trabajo actuales son institucionales y no se pueden eliminar.');
+    }
     await deleteDoc(doc(db, 'categories', catId));
   };
 
@@ -375,11 +448,12 @@ export default function App() {
           <button
             id="open-categories-modal-btn"
             onClick={() => setIsCategoryModalOpen(true)}
-            className="p-1.5 sm:px-2.5 sm:py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-200 rounded-lg text-xs font-medium flex items-center gap-1.5 transition border border-stone-700"
-            title="Administrar categorías personalizadas"
+            className="px-2 sm:px-2.5 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-200 rounded-lg text-xs font-medium flex items-center gap-1.5 transition border border-stone-700 shadow-xs"
+            title="Administrar, crear o eliminar líneas de trabajo"
           >
             <Tags className="w-3.5 h-3.5 text-amber-400" />
-            <span className="hidden sm:inline">Categorías</span>
+            <span className="hidden sm:inline">Líneas de Trabajo</span>
+            <span className="sm:hidden">Líneas</span>
           </button>
 
           {/* GitHub / Deploy Guide Button */}
@@ -451,6 +525,7 @@ export default function App() {
         totalFiltered={filteredPoints.length}
         totalPoints={points.length}
         onOpenReport={() => setIsReportModalOpen(true)}
+        onOpenCategoryManager={() => setIsCategoryModalOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -478,6 +553,8 @@ export default function App() {
                 setSelectedPointId(point.id);
                 setActiveTab('map');
               }}
+              onEditPoint={handleOpenEditPoint}
+              onDeletePoint={handleDeletePoint}
               onAddNewPoint={handleStartAddingPoint}
               onOpenReport={() => setIsReportModalOpen(true)}
             />
@@ -556,6 +633,7 @@ export default function App() {
         onClose={() => setIsCategoryModalOpen(false)}
         categories={categories}
         onAddCategory={handleAddCategory}
+        onUpdateCategory={handleUpdateCategory}
         onDeleteCategory={handleDeleteCategory}
         populationTypes={populationTypes}
         onAddPopulationType={handleAddPopulationType}

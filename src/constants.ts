@@ -31,172 +31,54 @@ export const POPULATION_TYPES = [
   'Adultos Mayores y Personas con Discapacidad'
 ];
 
-export const DEFAULT_CATEGORIES: PointCategory[] = [
+export const CORE_PERMANENT_CATEGORIES: PointCategory[] = [
   {
-    id: 'derechos_humanos_paz',
-    name: 'Derechos Humanos y Paz',
-    color: '#3B82F6', // Blue
-    iconName: 'Shield',
-    description: 'Atención humanitaria a víctimas, mediación, acompañamiento en el conflicto armado y memoria histórica.'
-  },
-  {
-    id: 'seguridad_alimentaria',
-    name: 'Seguridad Alimentaria y Agroecología',
-    color: '#10B981', // Emerald
-    iconName: 'Sprout',
-    description: 'Fincas agroecológicas, bancos de semillas criollas, soberanía alimentaria y comercialización campesina.'
-  },
-  {
-    id: 'infancia_juventud',
-    name: 'Infancia, Juventud y Educación',
-    color: '#F59E0B', // Amber
-    iconName: 'Users',
-    description: 'Espacios protectores, ludotecas rurales, refuerzo escolar y prevención del reclutamiento forzado.'
-  },
-  {
-    id: 'emergencia_migracion',
-    name: 'Emergencia y Ayuda Humanitaria Inmediata',
-    color: '#EF4444', // Red
-    iconName: 'HeartHandshake',
-    description: 'Kits alimentarios, albergues temporales, atención ante inundaciones por ríos Caguán, Orteguaza y Caquetá.'
-  },
-  {
-    id: 'empoderamiento_femenino',
-    name: 'Mujeres y Tejido Comunitario',
-    color: '#8B5CF6', // Purple
-    iconName: 'Sparkles',
-    description: 'Talleres productivos de mujeres, escuelas de liderazgo de paz y comités de convivencia.'
-  },
-  {
-    id: 'cuidado_casa_comun',
-    name: 'Cuidado de la Casa Común y Amazonía',
-    color: '#059669', // Deep green
+    id: 'linea_pastoral_rural_tierra',
+    name: 'Pastoral rural y de la tierra',
+    color: '#059669', // Emerald Amazon
     iconName: 'Trees',
-    description: 'Conservación de cuencas hidrográficas, reforestación amazónica y monitoreo socioambiental.'
-  }
+    description:
+      'Cuidado de la Amazonía. Eje ambiental-territorial: defensa del bosque, prácticas productivas sostenibles, vínculo con la tierra como bien común.',
+    isPermanent: true,
+  },
+  {
+    id: 'linea_seguridad_soberania_alimentaria',
+    name: 'Seguridad y soberanía alimentaria',
+    color: '#10B981', // Vibrant Green
+    iconName: 'Sprout',
+    description:
+      'Diagnóstico: en Caquetá, jóvenes y niños campesinos quieren salir pronto del territorio. Objetivo: generar arraigo territorial y relevo generacional. Vías: juntas de acción comunal, fincas y escuelas rurales; creación de oportunidades reales en el territorio.',
+    isPermanent: true,
+  },
+  {
+    id: 'linea_cuidado_justicia',
+    name: 'Cuidado y justicia',
+    color: '#2563EB', // Blue
+    iconName: 'Shield',
+    description:
+      'Acompañamiento y protección a líderes y lideresas sociales. Salvar vidas. Atención al desplazamiento forzado, incluido el urbano (sector urbano copado por actores armados).',
+    isPermanent: true,
+  },
+  {
+    id: 'linea_mujer',
+    name: 'Mujer',
+    color: '#8B5CF6', // Violet
+    iconName: 'Sparkles',
+    description: 'Promoción de la mujer rural y procesos de formación.',
+    isPermanent: true,
+  },
+  {
+    id: 'linea_comites_parroquiales',
+    name: 'Comités parroquiales de Pastoral Social',
+    color: '#D97706', // Amber / Golden
+    iconName: 'HeartHandshake',
+    description:
+      'Red de apoyo en las parroquias para asistencia a población vulnerable y activación de rutas de atención.',
+    isPermanent: true,
+  },
 ];
 
-export const INITIAL_HISTORICAL_POINTS: HumanitarianPoint[] = [
-  {
-    id: 'hist-1986-fundacion-florencia',
-    title: 'Sede Central y Fundación Pastoral Social',
-    description: 'Fundación oficial de la Vicaría de Pastoral Social de la Diócesis de Florencia (Monseñor José Luis Serna Alzate). Centro neurálgico de articulación humanitaria y defensa de los derechos de colonos y comunidades rurales.',
-    lat: 1.6144,
-    lng: -75.6062,
-    municipality: 'Florencia',
-    communityOrVereda: 'Barrio Centro / Curia Episcopal',
-    year: 1986,
-    categoryId: 'derechos_humanos_paz',
-    populationTypes: ['Víctimas del conflicto y Desplazados', 'Comunidades Campesinas y Colonos'],
-    beneficiariesApprox: 15000,
-    status: 'consolidated',
-    keyActions: ['Coordinación departamental', 'Acompañamiento a marchas campesinas de los 80', 'Documentación de DDHH']
-  },
-  {
-    id: 'hist-1996-marchas-sanvicente',
-    title: 'Acompañamiento Humanitario en Marchas Cocaleras y Diálogos',
-    description: 'Presencia de mediación pastoral y corredor humanitario durante las multitudinarias movilizaciones campesinas del Caguán para garantizar la vida y víveres.',
-    lat: 2.1136,
-    lng: -74.7694,
-    municipality: 'San Vicente del Caguán',
-    communityOrVereda: 'Casco urbano y veredas del Río Caguán',
-    year: 1996,
-    endYear: 2002,
-    categoryId: 'derechos_humanos_paz',
-    populationTypes: ['Comunidades Campesinas y Colonos', 'Víctimas del conflicto y Desplazados'],
-    beneficiariesApprox: 8000,
-    status: 'historical',
-    keyActions: ['Comisión de facilitación humanitaria', 'Entrega de paquetes alimentarios de urgencia', 'Monitoreo de derechos humanos']
-  },
-  {
-    id: 'hist-2004-resguardo-san-jose',
-    title: 'Acompañamiento a Pueblos Indígenas del Fragua',
-    description: 'Programa integral de protección cultural, agua potable comunitaria y soberanía alimentaria con familias indígenas Inga y Embera Chami.',
-    lat: 1.3283,
-    lng: -75.9722,
-    municipality: 'San José del Fragua',
-    communityOrVereda: 'Resguardos indígenas cuenca río Fragua',
-    year: 2004,
-    categoryId: 'cuidado_casa_comun',
-    populationTypes: ['Pueblos Indígenas (Koreguaje, Embera, Uitoto, Inga)', 'Niñez, Infancia y Juventudes'],
-    beneficiariesApprox: 650,
-    status: 'active',
-    keyActions: ['Huertos medicinales ancestrales', 'Protección del piedemonte amazónico', 'Sistemas de captación de agua']
-  },
-  {
-    id: 'hist-2010-paujil-fincas',
-    title: 'Red de Fincas Agroecológicas y Seguridad Alimentaria',
-    description: 'Implementación del modelo de fincas autosostenibles para sustitución voluntaria, producción de panela ecológica y cacao bajo sombra.',
-    lat: 1.5647,
-    lng: -75.3325,
-    municipality: 'El Paujil',
-    communityOrVereda: 'Veredas La Unión y Galicia',
-    year: 2010,
-    endYear: 2018,
-    categoryId: 'seguridad_alimentaria',
-    populationTypes: ['Comunidades Campesinas y Colonos', 'Productores Agroecológicos y Cacaoteros/Caucheros'],
-    beneficiariesApprox: 1200,
-    status: 'consolidated',
-    keyActions: ['Banco de semillas nativas', 'Capacitación en abonos orgánicos', 'Asociatividad campesina']
-  },
-  {
-    id: 'hist-2015-puertorico-mujeres',
-    title: 'Escuela de Liderazgo de Mujeres y Reconstrucción del Tejido',
-    description: 'Iniciativa para mujeres víctimas de la violencia sociopolítica en el norte del Caquetá con enfoque de sanación, costura y emprendimientos avícolas.',
-    lat: 1.9142,
-    lng: -75.1472,
-    municipality: 'Puerto Rico',
-    communityOrVereda: 'Veredas Río Guayas',
-    year: 2015,
-    categoryId: 'empoderamiento_femenino',
-    populationTypes: ['Mujeres lideresas y Madres cabeza de hogar', 'Víctimas del conflicto y Desplazados'],
-    beneficiariesApprox: 420,
-    status: 'active',
-    keyActions: ['Círculos de la palabra', 'Proyectos productivos de gallinas ponedoras', 'Memoria y sanación psicosocial']
-  },
-  {
-    id: 'hist-2019-cartagena-chaira',
-    title: 'Atención a Inundaciones y Cuenca del Río Caguán',
-    description: 'Respuesta ante emergencias climáticas y desbordamiento del río Caguán, entregando albergues temporales y kits sanitarios a comunidades ribereñas.',
-    lat: 1.3347,
-    lng: -74.8428,
-    municipality: 'Cartagena del Chairá',
-    communityOrVereda: 'Ribera del Río Caguán',
-    year: 2019,
-    categoryId: 'emergencia_migracion',
-    populationTypes: ['Comunidades Campesinas y Colonos', 'Niñez, Infancia y Juventudes'],
-    beneficiariesApprox: 2400,
-    status: 'historical',
-    keyActions: ['Filtros potabilizadores comunitarios', 'Distribución de kits de supervivencia', 'Prevención epidemiológica']
-  },
-  {
-    id: 'hist-2022-belen-andaquies',
-    title: 'Custodios del Agua y la Biodiversidad del Sarabando',
-    description: 'Acompañamiento a jóvenes y campesinos en la declaración de microcuencas protegidas y fomento del ecoturismo comunitario de paz.',
-    lat: 1.4172,
-    lng: -75.8756,
-    municipality: 'Belen de los Andaquíes',
-    communityOrVereda: 'Parque Natural Municipal Termales y Sarabando',
-    year: 2022,
-    categoryId: 'cuidado_casa_comun',
-    populationTypes: ['Niñez, Infancia y Juventudes', 'Comunidades Campesinas y Colonos'],
-    beneficiariesApprox: 850,
-    status: 'active',
-    keyActions: ['Monitoreo comunitario de fuentes hídricas', 'Senderos de memoria natural', 'Formación de vigías ambientales']
-  },
-  {
-    id: 'hist-2024-migrantes-florencia',
-    title: 'Centro de Atención al Migrante y Desplazado (CAMI)',
-    description: 'Espacio de acogida integral, orientación jurídica y salud básica para personas en tránsito y familias desplazadas recientes que arriban a la capital de Caquetá.',
-    lat: 1.6210,
-    lng: -75.6120,
-    municipality: 'Florencia',
-    communityOrVereda: 'Terminal y Barrio Juan XXIII',
-    year: 2024,
-    categoryId: 'emergencia_migracion',
-    populationTypes: ['Migrantes y Población en tránsito', 'Víctimas del conflicto y Desplazados', 'Mujeres lideresas y Madres cabeza de hogar'],
-    beneficiariesApprox: 3100,
-    status: 'active',
-    keyActions: ['Raciones calientes diarias', 'Asesoría legal y migratoria', 'Acompañamiento psicosocial']
-  }
-];
+export const DEFAULT_CATEGORIES: PointCategory[] = CORE_PERMANENT_CATEGORIES;
+
+export const INITIAL_HISTORICAL_POINTS: HumanitarianPoint[] = [];
+

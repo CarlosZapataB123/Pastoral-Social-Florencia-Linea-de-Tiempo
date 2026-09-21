@@ -1,12 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { HumanitarianPoint, PointCategory } from '../types';
-import { MapPin, Calendar, Users, ChevronRight, Bookmark, FileText } from 'lucide-react';
+import { MapPin, Calendar, Users, ChevronRight, FileText, Edit2, Trash2 } from 'lucide-react';
 
 interface PointsListViewProps {
   points: HumanitarianPoint[];
   categories: PointCategory[];
   selectedPointId: string | null;
   onSelectPoint: (point: HumanitarianPoint) => void;
+  onEditPoint?: (point: HumanitarianPoint) => void;
+  onDeletePoint?: (pointId: string) => Promise<void>;
   onAddNewPoint: () => void;
   onOpenReport?: () => void;
 }
@@ -16,10 +18,14 @@ export const PointsListView: React.FC<PointsListViewProps> = ({
   categories,
   selectedPointId,
   onSelectPoint,
+  onEditPoint,
+  onDeletePoint,
   onAddNewPoint,
   onOpenReport,
 }) => {
   const categoryMap = new Map(categories.map((c) => [c.id, c]));
+  const [deletingPointId, setDeletingPointId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   if (points.length === 0) {
     return (
@@ -52,6 +58,20 @@ export const PointsListView: React.FC<PointsListViewProps> = ({
   // Sort by year descending
   const sortedPoints = [...points].sort((a, b) => b.year - a.year);
 
+  const handleConfirmDelete = async (e: React.MouseEvent, pointId: string) => {
+    e.stopPropagation();
+    if (!onDeletePoint) return;
+    try {
+      setIsDeleting(true);
+      await onDeletePoint(pointId);
+      setDeletingPointId(null);
+    } catch (err) {
+      console.error('Error al eliminar punto:', err);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <div className="p-3 sm:p-4 space-y-2.5 max-w-4xl mx-auto">
       {/* List Header with Report CTA */}
@@ -79,6 +99,7 @@ export const PointsListView: React.FC<PointsListViewProps> = ({
       {sortedPoints.map((point) => {
         const category = categoryMap.get(point.categoryId);
         const isSelected = point.id === selectedPointId;
+        const isConfirmingThis = deletingPointId === point.id;
 
         return (
           <div
@@ -132,7 +153,66 @@ export const PointsListView: React.FC<PointsListViewProps> = ({
                 )}
               </div>
 
-              <ChevronRight className="w-5 h-5 text-stone-400 shrink-0 mt-2" />
+              {/* Action Buttons on Card */}
+              <div className="flex items-center gap-1 shrink-0 pt-1">
+                {isConfirmingThis ? (
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex items-center gap-1.5 p-1.5 bg-rose-50 border border-rose-200 rounded-xl"
+                  >
+                    <span className="text-[11px] font-semibold text-rose-800">¿Eliminar?</span>
+                    <button
+                      type="button"
+                      disabled={isDeleting}
+                      onClick={(e) => handleConfirmDelete(e, point.id)}
+                      className="px-2 py-0.5 text-[11px] font-bold bg-rose-600 hover:bg-rose-700 text-white rounded shadow-xs disabled:opacity-50"
+                    >
+                      {isDeleting ? '...' : 'Sí'}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isDeleting}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeletingPointId(null);
+                      }}
+                      className="px-1.5 py-0.5 text-[11px] text-stone-600 hover:text-stone-800"
+                    >
+                      No
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    {onEditPoint && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEditPoint(point);
+                        }}
+                        className="p-1.5 text-stone-400 hover:text-stone-800 hover:bg-stone-100 rounded-lg transition"
+                        title="Editar punto"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                    )}
+                    {onDeletePoint && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeletingPointId(point.id);
+                        }}
+                        className="p-1.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                        title="Eliminar punto"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                    <ChevronRight className="w-5 h-5 text-stone-300 ml-1" />
+                  </>
+                )}
+              </div>
             </div>
           </div>
         );

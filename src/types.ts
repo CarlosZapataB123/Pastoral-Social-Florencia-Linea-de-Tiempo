@@ -25,6 +25,7 @@ export interface PointCategory {
   color: string; // hex code
   iconName: string; // lucide icon identifier
   description?: string;
+  isPermanent?: boolean; // Las 5 líneas actuales son permanentes (no editables ni eliminables)
 }
 
 export interface CaquetaMunicipality {

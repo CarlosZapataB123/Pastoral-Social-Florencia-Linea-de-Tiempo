@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { HumanitarianPoint, PointCategory } from '../types';
 import {
   X,
@@ -10,6 +10,7 @@ import {
   Share2,
   Award,
   Sparkles,
+  AlertTriangle,
 } from 'lucide-react';
 
 interface PointDetailDrawerProps {
@@ -28,6 +29,9 @@ export const PointDetailDrawer: React.FC<PointDetailDrawerProps> = ({
   onDelete,
 }) => {
   if (!point) return null;
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const color = category?.color || '#2563EB';
 
@@ -92,6 +96,28 @@ export const PointDetailDrawer: React.FC<PointDetailDrawerProps> = ({
 
       {/* Content */}
       <div className="p-4 overflow-y-auto space-y-4 flex-1 text-stone-800">
+        {/* Category / Line Information */}
+        {category && (
+          <div className="p-3 bg-stone-50 rounded-xl border border-stone-200/80 text-xs space-y-1">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 font-bold text-stone-900">
+                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                <span>{category.name}</span>
+              </div>
+              {category.isPermanent && (
+                <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded-full shrink-0">
+                  Línea Pastoral Actual
+                </span>
+              )}
+            </div>
+            {category.description && (
+              <p className="text-[11px] text-stone-600 leading-relaxed pt-0.5">
+                {category.description}
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Quick Facts Grid */}
         <div className="grid grid-cols-2 gap-2 bg-stone-50 p-3 rounded-xl border border-stone-100 text-xs">
           <div>
@@ -192,27 +218,61 @@ export const PointDetailDrawer: React.FC<PointDetailDrawerProps> = ({
         </div>
       </div>
 
-      {/* Footer controls for Mobile editing */}
-      <div className="p-3 border-t border-stone-200 bg-stone-50 flex items-center justify-between gap-2">
-        <button
-          onClick={() => onEdit(point)}
-          className="flex-1 px-3 py-2 text-xs font-semibold bg-stone-900 text-white rounded-xl hover:bg-stone-800 transition flex items-center justify-center gap-1.5 shadow-xs"
-        >
-          <Edit2 className="w-3.5 h-3.5" />
-          Editar Información
-        </button>
-        <button
-          onClick={async () => {
-            if (window.confirm('¿Deseas eliminar este punto interactivo?')) {
-              await onDelete(point.id);
-              onClose();
-            }
-          }}
-          className="p-2 text-rose-600 hover:bg-rose-100 rounded-xl transition border border-rose-200"
-          title="Eliminar punto"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
+      {/* Footer controls for editing & deleting */}
+      <div className="p-3 border-t border-stone-200 bg-stone-50">
+        {showDeleteConfirm ? (
+          <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl space-y-2.5">
+            <div className="flex items-center gap-2 text-rose-800 font-semibold text-xs">
+              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+              <span>¿Eliminar este punto pastoral de la base de datos?</span>
+            </div>
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-3 py-1.5 text-xs font-semibold text-stone-600 hover:text-stone-800 rounded-lg hover:bg-rose-100 transition"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={async () => {
+                  try {
+                    setIsDeleting(true);
+                    await onDelete(point.id);
+                    onClose();
+                  } catch (e) {
+                    console.error(e);
+                    setIsDeleting(false);
+                  }
+                }}
+                className="px-3 py-1.5 text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white rounded-lg shadow-xs transition disabled:opacity-50 flex items-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                {isDeleting ? 'Eliminando...' : 'Sí, eliminar'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between gap-2">
+            <button
+              onClick={() => onEdit(point)}
+              className="flex-1 px-3 py-2.5 text-xs font-semibold bg-stone-900 text-white rounded-xl hover:bg-stone-800 transition flex items-center justify-center gap-1.5 shadow-xs"
+            >
+              <Edit2 className="w-3.5 h-3.5" />
+              Editar Información
+            </button>
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="p-2.5 text-rose-600 hover:bg-rose-100 rounded-xl transition border border-rose-200 flex items-center justify-center"
+              title="Eliminar este punto"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
