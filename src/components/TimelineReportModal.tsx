@@ -6,6 +6,7 @@ import {
   getJurisdictionColor,
   ECCLESIASTICAL_JURISDICTIONS,
 } from '../constants';
+import { ReportCaquetaMap } from './ReportCaquetaMap';
 import {
   FileText,
   Calendar,
@@ -29,6 +30,7 @@ import {
   ListOrdered,
   ChevronRight,
   Church,
+  Map as MapIcon,
 } from 'lucide-react';
 
 interface TimelineReportModalProps {
@@ -799,6 +801,17 @@ Generado desde el Sistema Cartográfico y de Memoria Pastoral - Caquetá
               </div>
             </div>
           </div>
+
+          {/* Section: Caquetá Map with Project Counts per Municipality (Zoomable, Filterable & Printable) */}
+          <ReportCaquetaMap
+            points={activeReportPoints}
+            allAvailablePoints={allPoints}
+            categories={categories}
+            globalSelectedJurisdiction={selectedJurisdiction}
+            onSelectMunicipality={(muni) => {
+              setReportSearch(muni);
+            }}
+          />
 
           {/* Section: Timeline ("La Línea del Tiempo") */}
           <div className="bg-white rounded-2xl p-6 sm:p-8 border border-stone-200/80 shadow-xs print:border-none print:shadow-none print:p-0">
