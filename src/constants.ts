@@ -1,22 +1,86 @@
-import { CaquetaMunicipality, PointCategory, HumanitarianPoint } from './types';
+import { CaquetaMunicipality, PointCategory, HumanitarianPoint, EcclesiasticalJurisdiction } from './types';
+
+export const ECCLESIASTICAL_JURISDICTIONS: {
+  id: string;
+  name: EcclesiasticalJurisdiction;
+  shortName: string;
+  color: string;
+  badgeBg: string;
+  badgeText: string;
+  municipalityCount: number;
+  description: string;
+}[] = [
+  {
+    id: 'arquidiocesis_florencia',
+    name: 'Arquidiócesis de Florencia',
+    shortName: 'Arquidiócesis de Florencia',
+    color: '#059669', // Emerald
+    badgeBg: 'bg-emerald-50 border-emerald-200',
+    badgeText: 'text-emerald-800',
+    municipalityCount: 14,
+    description: 'Florencia (sede episcopal) y 13 municipios del Caquetá',
+  },
+  {
+    id: 'diocesis_san_vicente',
+    name: 'Diócesis de San Vicente del Caguán',
+    shortName: 'Diócesis de San Vicente del Caguán',
+    color: '#0284C7', // Sky Blue
+    badgeBg: 'bg-sky-50 border-sky-200',
+    badgeText: 'text-sky-800',
+    municipalityCount: 1,
+    description: 'San Vicente del Caguán (cuenca del Río Caguán y Sabanas del Yarí)',
+  },
+  {
+    id: 'vicariato_leguizamo_solano',
+    name: 'Vicariato Apostólico de Puerto Leguízamo – Solano',
+    shortName: 'Vicariato Ap. Puerto Leguízamo – Solano',
+    color: '#7C3AED', // Violet / Purple
+    badgeBg: 'bg-purple-50 border-purple-200',
+    badgeText: 'text-purple-800',
+    municipalityCount: 1,
+    description: 'Municipio de Solano (ríos Consaya, Orteguaza y Caquetá)',
+  },
+];
+
+export function getEcclesiasticalJurisdiction(municipalityName?: string): EcclesiasticalJurisdiction {
+  if (!municipalityName) return 'Arquidiócesis de Florencia';
+  const norm = municipalityName.trim().toLowerCase();
+  if (norm.includes('solano')) {
+    return 'Vicariato Apostólico de Puerto Leguízamo – Solano';
+  }
+  if (norm.includes('caguán') || norm.includes('caguan') || norm.includes('san vicente')) {
+    return 'Diócesis de San Vicente del Caguán';
+  }
+  return 'Arquidiócesis de Florencia';
+}
+
+export function getJurisdictionColor(jurisdictionName: string): string {
+  if (jurisdictionName.includes('Solano') || jurisdictionName.includes('Leguízamo') || jurisdictionName.includes('Leguizamo')) {
+    return '#7C3AED'; // Purple
+  }
+  if (jurisdictionName.includes('Vicente') || jurisdictionName.includes('Caguán') || jurisdictionName.includes('Caguan')) {
+    return '#0284C7'; // Sky Blue
+  }
+  return '#059669'; // Emerald
+}
 
 export const CAQUETA_MUNICIPALITIES: CaquetaMunicipality[] = [
-  { name: 'Florencia', lat: 1.6144, lng: -75.6062, subregion: 'Centro' },
-  { name: 'Morelia', lat: 1.4883, lng: -75.7275, subregion: 'Sur' },
-  { name: 'Belén de los Andaquíes', lat: 1.4172, lng: -75.8756, subregion: 'Sur' },
-  { name: 'San José del Fragua', lat: 1.3283, lng: -75.9722, subregion: 'Sur' },
-  { name: 'Curillo', lat: 1.0333, lng: -75.9183, subregion: 'Sur' },
-  { name: 'Albania', lat: 1.3286, lng: -75.8778, subregion: 'Sur' },
-  { name: 'Valparaíso', lat: 1.1961, lng: -75.7061, subregion: 'Sur' },
-  { name: 'Solita', lat: 0.9419, lng: -75.6314, subregion: 'Sur' },
-  { name: 'Milán', lat: 1.2917, lng: -75.5122, subregion: 'Sur' },
-  { name: 'La Montañita', lat: 1.4828, lng: -75.4389, subregion: 'Centro' },
-  { name: 'El Paujil', lat: 1.5647, lng: -75.3325, subregion: 'Norte' },
-  { name: 'El Doncello', lat: 1.6775, lng: -75.2831, subregion: 'Norte' },
-  { name: 'Puerto Rico', lat: 1.9142, lng: -75.1472, subregion: 'Norte' },
-  { name: 'San Vicente del Caguán', lat: 2.1136, lng: -74.7694, subregion: 'Norte' },
-  { name: 'Cartagena del Chairá', lat: 1.3347, lng: -74.8428, subregion: 'Centro' },
-  { name: 'Solano', lat: 0.7069, lng: -75.2536, subregion: 'Sur' },
+  { name: 'Florencia', lat: 1.6144, lng: -75.6062, jurisdiction: 'Arquidiócesis de Florencia' },
+  { name: 'Morelia', lat: 1.4883, lng: -75.7275, jurisdiction: 'Arquidiócesis de Florencia' },
+  { name: 'Belén de los Andaquíes', lat: 1.4172, lng: -75.8756, jurisdiction: 'Arquidiócesis de Florencia' },
+  { name: 'San José del Fragua', lat: 1.3283, lng: -75.9722, jurisdiction: 'Arquidiócesis de Florencia' },
+  { name: 'Curillo', lat: 1.0333, lng: -75.9183, jurisdiction: 'Arquidiócesis de Florencia' },
+  { name: 'Albania', lat: 1.3286, lng: -75.8778, jurisdiction: 'Arquidiócesis de Florencia' },
+  { name: 'Valparaíso', lat: 1.1961, lng: -75.7061, jurisdiction: 'Arquidiócesis de Florencia' },
+  { name: 'Solita', lat: 0.9419, lng: -75.6314, jurisdiction: 'Arquidiócesis de Florencia' },
+  { name: 'Milán', lat: 1.2917, lng: -75.5122, jurisdiction: 'Arquidiócesis de Florencia' },
+  { name: 'La Montañita', lat: 1.4828, lng: -75.4389, jurisdiction: 'Arquidiócesis de Florencia' },
+  { name: 'El Paujil', lat: 1.5647, lng: -75.3325, jurisdiction: 'Arquidiócesis de Florencia' },
+  { name: 'El Doncello', lat: 1.6775, lng: -75.2831, jurisdiction: 'Arquidiócesis de Florencia' },
+  { name: 'Puerto Rico', lat: 1.9142, lng: -75.1472, jurisdiction: 'Arquidiócesis de Florencia' },
+  { name: 'San Vicente del Caguán', lat: 2.1136, lng: -74.7694, jurisdiction: 'Diócesis de San Vicente del Caguán' },
+  { name: 'Cartagena del Chairá', lat: 1.3347, lng: -74.8428, jurisdiction: 'Arquidiócesis de Florencia' },
+  { name: 'Solano', lat: 0.7069, lng: -75.2536, jurisdiction: 'Vicariato Apostólico de Puerto Leguízamo – Solano' },
 ];
 
 export const POPULATION_TYPES = [

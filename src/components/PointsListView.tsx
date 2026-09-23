@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { HumanitarianPoint, PointCategory } from '../types';
-import { MapPin, Calendar, Users, ChevronRight, FileText, Edit2, Trash2 } from 'lucide-react';
+import { MapPin, Calendar, Users, ChevronRight, FileText, Edit2, Trash2, Landmark, Target, Upload } from 'lucide-react';
 
 interface PointsListViewProps {
   points: HumanitarianPoint[];
@@ -11,6 +11,7 @@ interface PointsListViewProps {
   onDeletePoint?: (pointId: string) => Promise<void>;
   onAddNewPoint: () => void;
   onOpenReport?: () => void;
+  onOpenImport?: () => void;
 }
 
 export const PointsListView: React.FC<PointsListViewProps> = ({
@@ -22,6 +23,7 @@ export const PointsListView: React.FC<PointsListViewProps> = ({
   onDeletePoint,
   onAddNewPoint,
   onOpenReport,
+  onOpenImport,
 }) => {
   const categoryMap = new Map(categories.map((c) => [c.id, c]));
   const [deletingPointId, setDeletingPointId] = useState<string | null>(null);
@@ -35,6 +37,15 @@ export const PointsListView: React.FC<PointsListViewProps> = ({
           Prueba cambiando los filtros de año o categoría, o crea un nuevo punto en el mapa.
         </p>
         <div className="mt-4 flex flex-wrap justify-center gap-2">
+          {onOpenImport && (
+            <button
+              onClick={onOpenImport}
+              className="px-4 py-2 text-xs font-semibold bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition flex items-center gap-1.5"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              Incorporar Proyectos
+            </button>
+          )}
           <button
             onClick={onAddNewPoint}
             className="px-4 py-2 text-xs font-semibold bg-amber-600 text-white rounded-xl hover:bg-amber-700 transition"
@@ -85,15 +96,26 @@ export const PointsListView: React.FC<PointsListViewProps> = ({
           </span>
         </div>
 
-        {onOpenReport && (
-          <button
-            onClick={onOpenReport}
-            className="px-3 py-1.5 text-xs font-semibold text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300/80 rounded-lg flex items-center gap-1.5 transition shadow-2xs"
-          >
-            <FileText className="w-3.5 h-3.5 text-amber-700" />
-            <span>Generar Informe & Línea de Tiempo</span>
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {onOpenImport && (
+            <button
+              onClick={onOpenImport}
+              className="px-2.5 py-1.5 text-xs font-semibold text-emerald-900 bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 rounded-lg flex items-center gap-1.5 transition shadow-2xs"
+            >
+              <Upload className="w-3.5 h-3.5 text-emerald-700" />
+              <span>Incorporar Proyectos</span>
+            </button>
+          )}
+          {onOpenReport && (
+            <button
+              onClick={onOpenReport}
+              className="px-3 py-1.5 text-xs font-semibold text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300/80 rounded-lg flex items-center gap-1.5 transition shadow-2xs"
+            >
+              <FileText className="w-3.5 h-3.5 text-amber-700" />
+              <span>Generar Informe & Línea de Tiempo</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {sortedPoints.map((point) => {
@@ -134,8 +156,27 @@ export const PointsListView: React.FC<PointsListViewProps> = ({
                 </div>
 
                 <h3 className="text-sm font-bold text-stone-900 leading-snug">{point.title}</h3>
-                <p className="text-xs text-stone-600 line-clamp-2 mt-1 leading-relaxed">
-                  {point.description}
+                
+                {/* Funding Agency & Target Population Highlights */}
+                {(point.fundingAgency || point.targetPopulation) && (
+                  <div className="flex flex-wrap items-center gap-1.5 mt-1.5 text-xs">
+                    {point.fundingAgency && (
+                      <span className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200 text-amber-900 px-2 py-0.5 rounded-md font-semibold text-[11px]">
+                        <Landmark className="w-3 h-3 text-amber-700" />
+                        Financiador: {point.fundingAgency}
+                      </span>
+                    )}
+                    {point.targetPopulation && (
+                      <span className="inline-flex items-center gap-1 bg-stone-50 border border-stone-200 text-stone-700 px-2 py-0.5 rounded-md text-[11px]">
+                        <Target className="w-3 h-3 text-rose-500" />
+                        <span className="font-medium truncate max-w-xs">{point.targetPopulation}</span>
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                <p className="text-xs text-stone-600 line-clamp-2 mt-1.5 leading-relaxed">
+                  {point.description || point.objectives}
                 </p>
 
                 {point.populationTypes && point.populationTypes.length > 0 && (

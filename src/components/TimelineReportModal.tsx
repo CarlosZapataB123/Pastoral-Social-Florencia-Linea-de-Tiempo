@@ -1,6 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { HumanitarianPoint, PointCategory } from '../types';
-import { CAQUETA_MUNICIPALITIES } from '../constants';
+import {
+  CAQUETA_MUNICIPALITIES,
+  getEcclesiasticalJurisdiction,
+  getJurisdictionColor,
+  ECCLESIASTICAL_JURISDICTIONS,
+} from '../constants';
 import {
   FileText,
   Calendar,
@@ -20,8 +25,10 @@ import {
   Sparkles,
   HeartHandshake,
   Landmark,
+  Target,
   ListOrdered,
   ChevronRight,
+  Church,
 } from 'lucide-react';
 
 interface TimelineReportModalProps {
@@ -50,7 +57,7 @@ export const TimelineReportModal: React.FC<TimelineReportModalProps> = ({
   const [groupingMode, setGroupingMode] = useState<GroupingMode>('chronological');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [reportSearch, setReportSearch] = useState('');
-  const [selectedSubregion, setSelectedSubregion] = useState<string>('all');
+  const [selectedJurisdiction, setSelectedJurisdiction] = useState<string>('all');
   const [copiedNotification, setCopiedNotification] = useState(false);
 
   const categoryMap = useMemo(() => {
@@ -64,13 +71,13 @@ export const TimelineReportModal: React.FC<TimelineReportModalProps> = ({
   // Base list of points according to scope
   const basePoints = scope === 'filtered' ? filteredPoints : allPoints;
 
-  // Filter by search & subregion within report
+  // Filter by search & ecclesiastical jurisdiction within report
   const activeReportPoints = useMemo(() => {
     return basePoints.filter((pt) => {
-      // Subregion filter
-      if (selectedSubregion !== 'all') {
-        const muniInfo = municipalityMap.get(pt.municipality);
-        if (muniInfo?.subregion !== selectedSubregion) return false;
+      // Ecclesiastical jurisdiction filter
+      if (selectedJurisdiction !== 'all') {
+        const pointJurisdiction = getEcclesiasticalJurisdiction(pt.municipality);
+        if (pointJurisdiction !== selectedJurisdiction) return false;
       }
       // Report search query
       if (reportSearch.trim() !== '') {
@@ -80,13 +87,16 @@ export const TimelineReportModal: React.FC<TimelineReportModalProps> = ({
         const inMuni = pt.municipality.toLowerCase().includes(q);
         const inVereda = pt.communityOrVereda?.toLowerCase().includes(q) || false;
         const inActions = pt.keyActions?.some((a) => a.toLowerCase().includes(q)) || false;
-        if (!inTitle && !inDesc && !inMuni && !inVereda && !inActions) {
+        const inAgency = pt.fundingAgency?.toLowerCase().includes(q) || false;
+        const inTarget = pt.targetPopulation?.toLowerCase().includes(q) || false;
+        const inObj = pt.objectives?.toLowerCase().includes(q) || false;
+        if (!inTitle && !inDesc && !inMuni && !inVereda && !inActions && !inAgency && !inTarget && !inObj) {
           return false;
         }
       }
       return true;
     });
-  }, [basePoints, selectedSubregion, reportSearch, municipalityMap]);
+  }, [basePoints, selectedJurisdiction, reportSearch]);
 
   // Sorted points
   const sortedPoints = useMemo(() => {
@@ -111,7 +121,11 @@ export const TimelineReportModal: React.FC<TimelineReportModalProps> = ({
         totalBeneficiaries: 0,
         categoryCounts: [] as { category: PointCategory | undefined; count: number; percentage: number }[],
         statusCounts: { active: 0, historical: 0, consolidated: 0 },
-        subregionCounts: { Norte: 0, Centro: 0, Sur: 0 },
+        jurisdictionCounts: {
+          'Arquidiócesis de Florencia': 0,
+          'Diócesis de San Vicente del Caguán': 0,
+          'Vicariato Apostólico de Puerto Leguízamo – Solano': 0,
+        },
       };
     }
 
@@ -146,12 +160,16 @@ export const TimelineReportModal: React.FC<TimelineReportModalProps> = ({
       }))
       .sort((a, b) => b.count - a.count);
 
-    // Subregions distribution
-    const subregionCounts = { Norte: 0, Centro: 0, Sur: 0 };
+    // Ecclesiastical Jurisdictions distribution
+    const jurisdictionCounts: Record<string, number> = {
+      'Arquidiócesis de Florencia': 0,
+      'Diócesis de San Vicente del Caguán': 0,
+      'Vicariato Apostólico de Puerto Leguízamo – Solano': 0,
+    };
     activeReportPoints.forEach((p) => {
-      const muni = municipalityMap.get(p.municipality);
-      if (muni?.subregion && muni.subregion in subregionCounts) {
-        subregionCounts[muni.subregion]++;
+      const jur = getEcclesiasticalJurisdiction(p.municipality);
+      if (jur in jurisdictionCounts) {
+        jurisdictionCounts[jur]++;
       }
     });
 
@@ -163,9 +181,9 @@ export const TimelineReportModal: React.FC<TimelineReportModalProps> = ({
       totalBeneficiaries,
       categoryCounts,
       statusCounts,
-      subregionCounts,
+      jurisdictionCounts,
     };
-  }, [activeReportPoints, categoryMap, municipalityMap, currentYearRange]);
+  }, [activeReportPoints, categoryMap, currentYearRange]);
 
   // Grouping by Decades / Historical Eras
   const decadeGroups = useMemo(() => {
@@ -234,11 +252,11 @@ export const TimelineReportModal: React.FC<TimelineReportModalProps> = ({
     return Array.from(map.entries())
       .map(([muniName, pts]) => ({
         municipality: muniName,
-        subregion: municipalityMap.get(muniName)?.subregion || 'Caquetá',
+        jurisdiction: getEcclesiasticalJurisdiction(muniName),
         points: pts,
       }))
       .sort((a, b) => b.points.length - a.points.length);
-  }, [sortedPoints, municipalityMap]);
+  }, [sortedPoints]);
 
   if (!isOpen) return null;
 
@@ -259,14 +277,17 @@ Fecha de Emisión: ${new Date().toLocaleDateString('es-CO', { year: 'numeric', m
 - Periodo Comprendido: ${metrics.minYear} — ${metrics.maxYear} (${metrics.maxYear - metrics.minYear + 1} años de memoria institucional)
 - Cobertura Geográfica: ${metrics.distinctMunicipalities} de 16 municipios del Caquetá
 - Población Beneficiaria Estimada: ~${metrics.totalBeneficiaries.toLocaleString('es-CO')} personas/familias
-- Distribución por Subregiones: Norte (${metrics.subregionCounts.Norte}), Centro (${metrics.subregionCounts.Centro}), Sur (${metrics.subregionCounts.Sur})
+- Distribución por Jurisdicciones Eclesiásticas:
+  * Arquidiócesis de Florencia: ${metrics.jurisdictionCounts['Arquidiócesis de Florencia']} hitos
+  * Diócesis de San Vicente del Caguán: ${metrics.jurisdictionCounts['Diócesis de San Vicente del Caguán']} hitos
+  * Vicariato Apostólico de Puerto Leguízamo – Solano: ${metrics.jurisdictionCounts['Vicariato Apostólico de Puerto Leguízamo – Solano']} hitos
 
 ## LÍNEA DE TIEMPO DE HITOS HUMANITARIOS:
 ${sortedPoints
   .map(
     (p, i) =>
       `${i + 1}. [${p.year}${p.endYear ? ` - ${p.endYear}` : ''}] ${p.title}
-   - Municipio: ${p.municipality}${p.communityOrVereda ? ` (${p.communityOrVereda})` : ''}
+   - Municipio: ${p.municipality}${p.communityOrVereda ? ` (${p.communityOrVereda})` : ''} | Jurisdicción: ${getEcclesiasticalJurisdiction(p.municipality)}
    - Categoría: ${categoryMap.get(p.categoryId)?.name || 'General'} | Estado: ${p.status}
    - Población: ${p.populationTypes?.join(', ') || 'Comunidad en general'}
    - Acciones Clave: ${p.keyActions?.join('; ') || p.description}`
@@ -362,9 +383,13 @@ Generado desde el Sistema Cartográfico y de Memoria Pastoral - Caquetá
                 <h3 class="item-title">${p.title}</h3>
                 <div class="item-meta">
                   📍 ${p.municipality}${p.communityOrVereda ? ' • ' + p.communityOrVereda : ''} | 
+                  ⛪ ${getEcclesiasticalJurisdiction(p.municipality)} | 
                   🏷️ ${cat?.name || 'Labor Pastoral'} | 
+                  ${p.fundingAgency ? `🏦 Financiador: <strong>${p.fundingAgency}</strong> | ` : ''}
+                  ${p.targetPopulation ? `🎯 Población: <strong>${p.targetPopulation}</strong> | ` : ''}
                   👥 ${p.populationTypes?.join(', ') || 'Población General'}
                 </div>
+                ${p.executionPeriod ? `<div style="font-size: 11px; color: #b45309; font-weight: 600; margin-top: 2px;">Período: ${p.executionPeriod}</div>` : ''}
               </div>
             </div>
             <div class="item-desc">${p.description}</div>
@@ -565,16 +590,17 @@ Generado desde el Sistema Cartográfico y de Memoria Pastoral - Caquetá
               <Search className="w-3.5 h-3.5 text-stone-400 absolute left-2 top-1.5" />
             </div>
 
-            {/* Subregion filter */}
+            {/* Ecclesiastical Jurisdiction filter */}
             <select
-              value={selectedSubregion}
-              onChange={(e) => setSelectedSubregion(e.target.value)}
-              className="text-xs bg-stone-50 border border-stone-200 rounded-lg py-1 px-2 focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-700"
+              value={selectedJurisdiction}
+              onChange={(e) => setSelectedJurisdiction(e.target.value)}
+              className="text-xs bg-stone-50 border border-stone-200 rounded-lg py-1 px-2 focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-700 max-w-[200px]"
+              title="Filtrar por Jurisdicción Eclesiástica"
             >
-              <option value="all">Todas las Subregiones</option>
-              <option value="Norte">Subregión Norte</option>
-              <option value="Centro">Subregión Centro</option>
-              <option value="Sur">Subregión Sur</option>
+              <option value="all">Todas las Jurisdicciones</option>
+              <option value="Arquidiócesis de Florencia">Arquidiócesis de Florencia</option>
+              <option value="Diócesis de San Vicente del Caguán">Diócesis de San Vicente del Caguán</option>
+              <option value="Vicariato Apostólico de Puerto Leguízamo – Solano">Vicariato Ap. Puerto Leguízamo – Solano</option>
             </select>
           </div>
         </div>
@@ -676,7 +702,7 @@ Generado desde el Sistema Cartográfico y de Memoria Pastoral - Caquetá
               </div>
             </div>
 
-            {/* Strategic Distribution breakdown (Subregions & Categories) */}
+            {/* Strategic Distribution breakdown (Jurisdictions & Categories) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 pt-6 border-t border-stone-200">
               {/* By Category */}
               <div>
@@ -717,37 +743,41 @@ Generado desde el Sistema Cartográfico y de Memoria Pastoral - Caquetá
                 )}
               </div>
 
-              {/* By Subregions & Status */}
+              {/* By Ecclesiastical Jurisdictions & Status */}
               <div>
                 <h3 className="text-xs font-bold text-stone-700 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-amber-600" />
-                  Presencia en Subregiones del Caquetá
+                  <Church className="w-3.5 h-3.5 text-amber-600" />
+                  Presencia por Jurisdicciones Eclesiásticas
                 </h3>
-                <div className="grid grid-cols-3 gap-2 mb-4">
-                  <div className="p-2.5 bg-blue-50/70 border border-blue-200/60 rounded-xl text-center">
-                    <span className="text-[10px] font-bold text-blue-700 uppercase block">
-                      Norte
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
+                  <div className="p-2.5 bg-emerald-50/80 border border-emerald-200/80 rounded-xl text-center">
+                    <span className="text-[10px] font-bold text-emerald-800 uppercase block line-clamp-1" title="Arquidiócesis de Florencia">
+                      Florencia
                     </span>
-                    <span className="text-lg font-bold text-blue-900">
-                      {metrics.subregionCounts.Norte}
+                    <span className="text-lg font-extrabold text-emerald-900 block mt-0.5">
+                      {metrics.jurisdictionCounts['Arquidiócesis de Florencia']}
                     </span>
-                    <span className="text-[10px] text-blue-600 block">hitos</span>
+                    <span className="text-[10px] text-emerald-700 block font-medium">Arquidiócesis (14 mun.)</span>
                   </div>
-                  <div className="p-2.5 bg-emerald-50/70 border border-emerald-200/60 rounded-xl text-center">
-                    <span className="text-[10px] font-bold text-emerald-700 uppercase block">
-                      Centro
+
+                  <div className="p-2.5 bg-sky-50/80 border border-sky-200/80 rounded-xl text-center">
+                    <span className="text-[10px] font-bold text-sky-800 uppercase block line-clamp-1" title="Diócesis de San Vicente del Caguán">
+                      San Vicente
                     </span>
-                    <span className="text-lg font-bold text-emerald-900">
-                      {metrics.subregionCounts.Centro}
+                    <span className="text-lg font-extrabold text-sky-900 block mt-0.5">
+                      {metrics.jurisdictionCounts['Diócesis de San Vicente del Caguán']}
                     </span>
-                    <span className="text-[10px] text-emerald-600 block">hitos</span>
+                    <span className="text-[10px] text-sky-700 block font-medium">Diócesis (Caguán)</span>
                   </div>
-                  <div className="p-2.5 bg-amber-50/70 border border-amber-200/60 rounded-xl text-center">
-                    <span className="text-[10px] font-bold text-amber-700 uppercase block">Sur</span>
-                    <span className="text-lg font-bold text-amber-900">
-                      {metrics.subregionCounts.Sur}
+
+                  <div className="p-2.5 bg-purple-50/80 border border-purple-200/80 rounded-xl text-center">
+                    <span className="text-[10px] font-bold text-purple-800 uppercase block line-clamp-1" title="Vicariato Apostólico de Puerto Leguízamo – Solano">
+                      Solano
                     </span>
-                    <span className="text-[10px] text-amber-600 block">hitos</span>
+                    <span className="text-lg font-extrabold text-purple-900 block mt-0.5">
+                      {metrics.jurisdictionCounts['Vicariato Apostólico de Puerto Leguízamo – Solano']}
+                    </span>
+                    <span className="text-[10px] text-purple-700 block font-medium">Vicariato Apostólico</span>
                   </div>
                 </div>
 
@@ -818,7 +848,7 @@ Generado desde el Sistema Cartográfico y de Memoria Pastoral - Caquetá
                   return (
                     <div
                       key={point.id}
-                      className="relative group transition-all"
+                      className="relative group transition-all timeline-item break-inside-avoid print:break-inside-avoid"
                     >
                       {/* Timeline Node Icon */}
                       <div
@@ -831,7 +861,7 @@ Generado desde el Sistema Cartográfico y de Memoria Pastoral - Caquetá
                       {/* Milestone Card */}
                       <div
                         onClick={() => onSelectPoint && onSelectPoint(point)}
-                        className="p-4 sm:p-5 rounded-xl border border-stone-200 bg-stone-50/50 hover:bg-white hover:border-amber-400 hover:shadow-xs transition-all cursor-pointer print:bg-white print:border-stone-300"
+                        className="p-4 sm:p-5 rounded-xl border border-stone-200 bg-stone-50/50 hover:bg-white hover:border-amber-400 hover:shadow-xs transition-all cursor-pointer print:bg-white print:border-stone-300 item-card break-inside-avoid print:break-inside-avoid"
                       >
                         {/* Milestone Top Row */}
                         <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
@@ -854,11 +884,10 @@ Generado desde el Sistema Cartográfico y de Memoria Pastoral - Caquetá
                               {point.communityOrVereda && ` • ${point.communityOrVereda}`}
                             </span>
 
-                            {municipality?.subregion && (
-                              <span className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">
-                                ({municipality.subregion})
-                              </span>
-                            )}
+                            <span className="text-[10px] font-semibold text-stone-700 bg-stone-100 border border-stone-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                              <Church className="w-3 h-3 text-amber-600" />
+                              {getEcclesiasticalJurisdiction(point.municipality)}
+                            </span>
                           </div>
 
                           {/* Status Badge */}
@@ -880,9 +909,34 @@ Generado desde el Sistema Cartográfico y de Memoria Pastoral - Caquetá
                         </div>
 
                         {/* Title & Description */}
-                        <h3 className="text-sm sm:text-base font-bold text-stone-900 mb-1.5">
+                        <h3 className="text-sm sm:text-base font-bold text-stone-900 mb-1">
                           {point.title}
                         </h3>
+
+                        {/* Funding Agency, Execution Dates & Target Population Highlights */}
+                        {(point.fundingAgency || point.targetPopulation || point.executionPeriod) && (
+                          <div className="flex flex-wrap items-center gap-1.5 mb-2.5 text-xs">
+                            {point.fundingAgency && (
+                              <span className="inline-flex items-center gap-1 bg-amber-50 border border-amber-200 text-amber-900 px-2 py-0.5 rounded-md font-semibold text-[11px]">
+                                <Landmark className="w-3 h-3 text-amber-700" />
+                                Financiador: {point.fundingAgency}
+                              </span>
+                            )}
+                            {point.executionPeriod && (
+                              <span className="inline-flex items-center gap-1 bg-stone-100 text-stone-700 px-2 py-0.5 rounded-md text-[11px] font-medium">
+                                <Calendar className="w-3 h-3 text-stone-500" />
+                                {point.executionPeriod}
+                              </span>
+                            )}
+                            {point.targetPopulation && (
+                              <span className="inline-flex items-center gap-1 bg-stone-50 border border-stone-200 text-stone-700 px-2 py-0.5 rounded-md text-[11px]">
+                                <Target className="w-3 h-3 text-rose-500" />
+                                <span className="font-medium">{point.targetPopulation}</span>
+                              </span>
+                            )}
+                          </div>
+                        )}
+
                         <p className="text-xs sm:text-sm text-stone-600 leading-relaxed mb-3">
                           {point.description}
                         </p>
@@ -952,7 +1006,7 @@ Generado desde el Sistema Cartográfico y de Memoria Pastoral - Caquetá
                 {decadeGroups.map((era) => (
                   <div
                     key={era.id}
-                    className="border border-stone-200 rounded-xl overflow-hidden bg-stone-50/40 print:border-stone-300"
+                    className="border border-stone-200 rounded-xl overflow-hidden bg-stone-50/40 print:border-stone-300 timeline-item break-inside-avoid print:break-inside-avoid"
                   >
                     {/* Era Header */}
                     <div className="bg-stone-900 text-white p-4 sm:p-5 flex flex-wrap items-center justify-between gap-2 print:bg-stone-800">
@@ -975,7 +1029,7 @@ Generado desde el Sistema Cartográfico y de Memoria Pastoral - Caquetá
                         return (
                           <div
                             key={pt.id}
-                            className="bg-white p-4 rounded-xl border border-stone-200 hover:border-amber-400 transition"
+                            className="bg-white p-4 rounded-xl border border-stone-200 hover:border-amber-400 transition item-card break-inside-avoid print:break-inside-avoid"
                           >
                             <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
                               <div className="flex items-center gap-2">
@@ -994,8 +1048,16 @@ Generado desde el Sistema Cartográfico y de Memoria Pastoral - Caquetá
                             <p className="text-xs text-stone-600 mb-2">{pt.description}</p>
                             <div className="text-[11px] text-stone-500 flex flex-wrap gap-2 items-center">
                               <span>📍 {pt.municipality}</span>
+                              <span className="text-stone-400">•</span>
+                              <span className="flex items-center gap-1 font-medium text-stone-600">
+                                <Church className="w-3 h-3 text-amber-600" />
+                                {getEcclesiasticalJurisdiction(pt.municipality)}
+                              </span>
                               {pt.beneficiariesApprox ? (
-                                <span>• Beneficiarios: ~{pt.beneficiariesApprox}</span>
+                                <>
+                                  <span className="text-stone-400">•</span>
+                                  <span>Beneficiarios: ~{pt.beneficiariesApprox}</span>
+                                </>
                               ) : null}
                             </div>
                           </div>
@@ -1013,7 +1075,7 @@ Generado desde el Sistema Cartográfico y de Memoria Pastoral - Caquetá
                 {municipalityGroups.map((group) => (
                   <div
                     key={group.municipality}
-                    className="bg-stone-50/70 border border-stone-200 rounded-xl p-4 sm:p-5"
+                    className="bg-stone-50/70 border border-stone-200 rounded-xl p-4 sm:p-5 timeline-item break-inside-avoid print:break-inside-avoid"
                   >
                     <div className="flex items-center justify-between pb-3 mb-3 border-b border-stone-200">
                       <div>
@@ -1021,8 +1083,9 @@ Generado desde el Sistema Cartográfico y de Memoria Pastoral - Caquetá
                           <MapPin className="w-4 h-4 text-amber-600" />
                           {group.municipality}
                         </h3>
-                        <span className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider">
-                          Subregión {group.subregion}
+                        <span className="text-[11px] font-semibold text-stone-600 flex items-center gap-1 mt-0.5">
+                          <Church className="w-3 h-3 text-amber-600" />
+                          {group.jurisdiction}
                         </span>
                       </div>
                       <span className="text-xs font-bold bg-stone-200 text-stone-800 px-2.5 py-0.5 rounded-full">
@@ -1036,7 +1099,7 @@ Generado desde el Sistema Cartográfico y de Memoria Pastoral - Caquetá
                         return (
                           <div
                             key={pt.id}
-                            className="bg-white p-3 rounded-lg border border-stone-200/80 text-xs"
+                            className="bg-white p-3 rounded-lg border border-stone-200/80 text-xs item-card break-inside-avoid print:break-inside-avoid"
                           >
                             <div className="flex justify-between items-start gap-2 mb-1">
                               <span className="font-bold text-stone-800">{pt.title}</span>
@@ -1074,7 +1137,7 @@ Generado desde el Sistema Cartográfico y de Memoria Pastoral - Caquetá
                     <tr className="bg-stone-100 text-stone-700 font-bold border-b border-stone-200">
                       <th className="py-2.5 px-3">Año</th>
                       <th className="py-2.5 px-3">Hito / Intervención</th>
-                      <th className="py-2.5 px-3">Municipio</th>
+                      <th className="py-2.5 px-3">Municipio / Jurisdicción</th>
                       <th className="py-2.5 px-3">Eje Pastoral</th>
                       <th className="py-2.5 px-3">Población</th>
                       <th className="py-2.5 px-3">Estado</th>
@@ -1084,7 +1147,7 @@ Generado desde el Sistema Cartográfico y de Memoria Pastoral - Caquetá
                     {sortedPoints.map((pt) => {
                       const cat = categoryMap.get(pt.categoryId);
                       return (
-                        <tr key={pt.id} className="hover:bg-stone-50 transition">
+                        <tr key={pt.id} className="hover:bg-stone-50 transition print:break-inside-avoid break-inside-avoid">
                           <td className="py-2 px-3 font-bold text-amber-800 whitespace-nowrap">
                             {pt.year}
                             {pt.endYear ? ` - ${pt.endYear}` : ''}
@@ -1093,7 +1156,10 @@ Generado desde el Sistema Cartográfico y de Memoria Pastoral - Caquetá
                             {pt.title}
                           </td>
                           <td className="py-2 px-3 text-stone-600 whitespace-nowrap">
-                            {pt.municipality}
+                            <span className="font-medium text-stone-800">{pt.municipality}</span>
+                            <span className="text-[10px] text-stone-500 block">
+                              {getEcclesiasticalJurisdiction(pt.municipality)}
+                            </span>
                           </td>
                           <td className="py-2 px-3">
                             <span

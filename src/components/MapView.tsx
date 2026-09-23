@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import L from 'leaflet';
 import { HumanitarianPoint, PointCategory } from '../types';
-import { CAQUETA_MUNICIPALITIES } from '../constants';
+import { CAQUETA_MUNICIPALITIES, getEcclesiasticalJurisdiction, getJurisdictionColor, ECCLESIASTICAL_JURISDICTIONS } from '../constants';
 import {
   CAQUETA_DEPARTAMENTO_GEOJSON,
   CAQUETA_MUNICIPIOS_GEOJSON,
@@ -60,13 +60,16 @@ export const MapView: React.FC<MapViewProps> = ({
     const counts: Record<string, number> = {};
     points.forEach((p) => {
       const name = (p.municipality || '').trim();
-      counts[name] = (counts[name] || 0) + 1;
-      // Handle alias for Montañita
-      if (name.toLowerCase().includes('monta')) {
-        counts['La Montañita'] = (counts['La Montañita'] || 0) + 1;
-        counts['Montañita'] = (counts['Montañita'] || 0) + 1;
-      }
+      if (!name) return;
+      // Normalize Montañita name
+      const canonicalName = name.toLowerCase().includes('monta') ? 'La Montañita' : name;
+      counts[canonicalName] = (counts[canonicalName] || 0) + 1;
     });
+
+    // Provide alias for Montañita so both geojson and constants can read it
+    if (counts['La Montañita']) {
+      counts['Montañita'] = counts['La Montañita'];
+    }
     return counts;
   }, [points]);
 
@@ -174,26 +177,12 @@ export const MapView: React.FC<MapViewProps> = ({
 
     if (!showMunicipalities) return;
 
-    // Helper for subregion color
-    const getSubregionColor = (subregion: string) => {
-      switch (subregion) {
-        case 'Norte':
-          return '#0284C7'; // Blue
-        case 'Centro':
-          return '#10B981'; // Emerald
-        case 'Sur':
-          return '#F59E0B'; // Amber
-        default:
-          return '#059669';
-      }
-    };
-
     const isSatellite = activeLayer === 'satellite';
 
     const geoJsonLayer = L.geoJSON(CAQUETA_MUNICIPIOS_GEOJSON, {
       style: (feature) => {
         const muniName = feature?.properties?.nombre || feature?.properties?.name || '';
-        const subregion = feature?.properties?.subregion || 'Centro';
+        const jurisdiction = feature?.properties?.jurisdiction || getEcclesiasticalJurisdiction(muniName);
         const isSelected =
           selectedMunicipality !== 'all' &&
           (muniName.toLowerCase() === selectedMunicipality.toLowerCase() ||
@@ -215,13 +204,13 @@ export const MapView: React.FC<MapViewProps> = ({
           weight: isSatellite ? 2 : 1.6,
           opacity: isSatellite ? 0.9 : 0.85,
           dashArray: '4, 4',
-          fillColor: getSubregionColor(subregion),
-          fillOpacity: isSatellite ? 0.1 : 0.05,
+          fillColor: getJurisdictionColor(jurisdiction),
+          fillOpacity: isSatellite ? 0.12 : 0.07,
         };
       },
       onEachFeature: (feature, layer) => {
         const muniName = feature.properties.nombre || feature.properties.name;
-        const subregion = feature.properties.subregion;
+        const jurisdiction = feature.properties.jurisdiction || getEcclesiasticalJurisdiction(muniName);
         const isCapital = feature.properties.isCapital;
         const count = pointsCountByMuni[muniName] || 0;
 
@@ -232,8 +221,8 @@ export const MapView: React.FC<MapViewProps> = ({
               <span>${muniName}</span>
               ${isCapital ? '<span class="bg-amber-100 text-amber-800 text-[10px] px-1 py-0.2 rounded font-semibold">Capital</span>' : ''}
             </div>
-            <div class="text-[11px] text-stone-500 font-medium mt-0.5">
-              Subregión ${subregion} &bull; <strong class="text-emerald-700">${count} ${count === 1 ? 'labor' : 'labores'}</strong>
+            <div class="text-[11px] text-stone-600 font-medium mt-0.5">
+              <span class="font-semibold text-stone-700">${jurisdiction}</span> &bull; <strong class="text-emerald-700">${count} ${count === 1 ? 'labor' : 'labores'}</strong>
             </div>
           </div>
         `;
@@ -326,14 +315,14 @@ export const MapView: React.FC<MapViewProps> = ({
             ? 'bg-stone-900/90 text-stone-100 border border-stone-700/80 hover:bg-stone-800'
             : 'bg-white/95 text-stone-800 border border-stone-300 hover:border-emerald-500 hover:text-emerald-700'
         }">
-          <span class="w-1.5 h-1.5 rounded-full ${
+          <span class="w-2 h-2 rounded-full ${
             isSelected
               ? 'bg-white animate-pulse'
-              : muni.subregion === 'Norte'
+              : muni.name.toLowerCase().includes('solano')
+              ? 'bg-purple-600'
+              : muni.name.toLowerCase().includes('vicente')
               ? 'bg-sky-500'
-              : muni.subregion === 'Centro'
-              ? 'bg-emerald-500'
-              : 'bg-amber-500'
+              : 'bg-emerald-600'
           }"></span>
           <span class="whitespace-nowrap">${muni.name}</span>
           ${
@@ -416,7 +405,17 @@ export const MapView: React.FC<MapViewProps> = ({
             <span class="text-xs font-semibold uppercase tracking-wider text-stone-500">${category?.name || 'Labor Humanitaria'}</span>
           </div>
           <h4 class="font-bold text-sm text-stone-900 leading-tight mb-1">${point.title}</h4>
-          <p class="text-xs text-stone-600 mb-2">${point.municipality} ${point.communityOrVereda ? `&bull; ${point.communityOrVereda}` : ''}</p>
+          <p class="text-xs text-stone-600 mb-1.5">${point.municipality} ${point.communityOrVereda ? `&bull; ${point.communityOrVereda}` : ''}</p>
+          ${point.fundingAgency ? `
+            <div class="text-[11px] font-semibold text-amber-900 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md inline-block mb-1.5">
+              Financiador: ${point.fundingAgency}
+            </div>
+          ` : ''}
+          ${point.targetPopulation ? `
+            <p class="text-[11px] text-stone-700 font-medium mb-1.5 line-clamp-2">
+              <span class="text-stone-400">Población:</span> ${point.targetPopulation}
+            </p>
+          ` : ''}
           <div class="flex items-center justify-between text-xs text-stone-500 pt-1 border-t border-stone-100">
             <span class="font-medium text-stone-800">Año: ${point.year}${point.endYear ? ` - ${point.endYear}` : ''}</span>
             <span class="bg-stone-100 px-1.5 py-0.5 rounded text-[11px] font-medium text-stone-700">${point.status === 'active' ? 'En Curso' : 'Histórico'}</span>
@@ -471,6 +470,18 @@ export const MapView: React.FC<MapViewProps> = ({
     }
   };
 
+  // Frame all existing points
+  const handleFitToAllPoints = () => {
+    if (!mapInstanceRef.current || points.length === 0) return;
+    const group = L.featureGroup(
+      points.map((p) => L.marker([p.lat, p.lng]))
+    );
+    const bounds = group.getBounds();
+    if (bounds.isValid()) {
+      mapInstanceRef.current.fitBounds(bounds, { padding: [60, 60], maxZoom: 12 });
+    }
+  };
+
   return (
     <div className="relative w-full h-full">
       {/* Map Canvas */}
@@ -494,6 +505,17 @@ export const MapView: React.FC<MapViewProps> = ({
         <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-md border border-stone-200/80 p-1.5 flex items-center gap-1">
           <button
             type="button"
+            id="btn-fit-points"
+            onClick={handleFitToAllPoints}
+            className="px-2 py-1.5 text-stone-700 hover:text-amber-800 hover:bg-amber-50 rounded-lg text-xs font-semibold flex items-center gap-1 transition"
+            title="Enfocar todos los puntos de labor en el mapa"
+          >
+            <MapPin className="w-3.5 h-3.5 text-amber-600" />
+            <span className="hidden sm:inline">Ver puntos ({points.length})</span>
+          </button>
+
+          <button
+            type="button"
             id="btn-toggle-boundaries-legend"
             onClick={() => setIsLegendOpen(!isLegendOpen)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
@@ -504,7 +526,7 @@ export const MapView: React.FC<MapViewProps> = ({
             title="Ver controles de límites territoriales de Caquetá"
           >
             <Compass className="w-4 h-4 text-emerald-600" />
-            <span>Límites y Capas</span>
+            <span>Límites</span>
           </button>
 
           <button
@@ -581,28 +603,29 @@ export const MapView: React.FC<MapViewProps> = ({
               </label>
             </div>
 
-            {/* Subregions Legend */}
+            {/* Ecclesiastical Jurisdictions Legend */}
             <div className="pt-2 border-t border-stone-100">
-              <div className="text-[11px] font-semibold text-stone-400 uppercase tracking-wider mb-1.5">
-                Subregiones
+              <div className="text-[11px] font-semibold text-stone-500 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                <span>Jurisdicciones Eclesiásticas</span>
+                <span className="text-[9px] font-normal text-stone-400">3 sedes</span>
               </div>
-              <div className="grid grid-cols-1 gap-1 text-[11px]">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-sky-500"></span>
-                  <span className="text-stone-700">
-                    <strong>Norte:</strong> San Vicente, Pto. Rico, Doncello, Paujil
+              <div className="space-y-1.5 text-[11px]">
+                <div className="flex items-start gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 mt-0.5 shrink-0 shadow-xs"></span>
+                  <span className="text-stone-700 leading-tight">
+                    <strong className="text-stone-900">Arquidiócesis de Florencia:</strong> Florencia y 13 municipios del Caquetá
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                  <span className="text-stone-700">
-                    <strong>Centro:</strong> Florencia, Montañita, Cartagena
+                <div className="flex items-start gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-sky-500 mt-0.5 shrink-0 shadow-xs"></span>
+                  <span className="text-stone-700 leading-tight">
+                    <strong className="text-stone-900">Diócesis de San Vicente del Caguán:</strong> San Vicente del Caguán
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-                  <span className="text-stone-700">
-                    <strong>Sur:</strong> Belén, Morelia, Fragua, Curillo, Solano...
+                <div className="flex items-start gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-purple-600 mt-0.5 shrink-0 shadow-xs"></span>
+                  <span className="text-stone-700 leading-tight">
+                    <strong className="text-stone-900">Vicariato Apostólico de Puerto Leguízamo – Solano:</strong> Solano
                   </span>
                 </div>
               </div>

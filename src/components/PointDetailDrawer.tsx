@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { HumanitarianPoint, PointCategory } from '../types';
+import { getEcclesiasticalJurisdiction } from '../constants';
 import {
   X,
   MapPin,
@@ -11,6 +12,11 @@ import {
   Award,
   Sparkles,
   AlertTriangle,
+  Landmark,
+  Target,
+  FileText,
+  CheckCircle2,
+  Church,
 } from 'lucide-react';
 
 interface PointDetailDrawerProps {
@@ -85,12 +91,19 @@ export const PointDetailDrawer: React.FC<PointDetailDrawerProps> = ({
         </div>
 
         <h2 className="text-lg font-bold text-white leading-snug">{point.title}</h2>
-        <div className="flex items-center gap-1.5 text-xs text-white/85 mt-1">
-          <MapPin className="w-3.5 h-3.5 shrink-0" />
-          <span>
-            {point.municipality}
-            {point.communityOrVereda ? `, ${point.communityOrVereda}` : ''}
-          </span>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-white/85 mt-1">
+          <div className="flex items-center gap-1.5">
+            <MapPin className="w-3.5 h-3.5 shrink-0" />
+            <span>
+              {point.municipality}
+              {point.communityOrVereda ? `, ${point.communityOrVereda}` : ''}
+            </span>
+          </div>
+          <span className="text-white/40">•</span>
+          <div className="flex items-center gap-1 text-[11px] text-amber-200 font-medium">
+            <Church className="w-3.5 h-3.5 shrink-0 text-amber-300" />
+            <span>{getEcclesiasticalJurisdiction(point.municipality)}</span>
+          </div>
         </div>
       </div>
 
@@ -118,6 +131,17 @@ export const PointDetailDrawer: React.FC<PointDetailDrawerProps> = ({
           </div>
         )}
 
+        {/* Funding Agency / Cooperante */}
+        {point.fundingAgency && (
+          <div className="p-3 bg-amber-50/70 border border-amber-200/90 rounded-xl text-xs space-y-1">
+            <span className="text-[10px] uppercase font-bold text-amber-800 tracking-wider flex items-center gap-1.5">
+              <Landmark className="w-3.5 h-3.5 text-amber-700" />
+              Agencia o Entidad Financiadora
+            </span>
+            <div className="font-bold text-stone-900 text-sm">{point.fundingAgency}</div>
+          </div>
+        )}
+
         {/* Quick Facts Grid */}
         <div className="grid grid-cols-2 gap-2 bg-stone-50 p-3 rounded-xl border border-stone-100 text-xs">
           <div>
@@ -125,9 +149,14 @@ export const PointDetailDrawer: React.FC<PointDetailDrawerProps> = ({
             <div className="flex items-center gap-1 font-bold text-stone-900 mt-0.5">
               <Calendar className="w-3.5 h-3.5 text-amber-600" />
               <span>
-                {point.year} {point.endYear ? `- ${point.endYear}` : '(Presente)'}
+                {point.year} {point.endYear ? `- ${point.endYear}` : ''}
               </span>
             </div>
+            {point.executionPeriod && (
+              <span className="text-[11px] text-stone-500 block mt-0.5 leading-tight">
+                {point.executionPeriod}
+              </span>
+            )}
           </div>
           <div>
             <span className="text-stone-400 block font-medium">Estado</span>
@@ -158,18 +187,31 @@ export const PointDetailDrawer: React.FC<PointDetailDrawerProps> = ({
           )}
         </div>
 
-        {/* Population Types */}
+        {/* Target Population Detail */}
+        {point.targetPopulation && (
+          <div className="p-3 bg-stone-50 rounded-xl border border-stone-200/70 text-xs space-y-1">
+            <h4 className="text-[11px] font-bold uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
+              <Target className="w-3.5 h-3.5 text-rose-600" />
+              Población Objetivo
+            </h4>
+            <p className="text-stone-800 font-medium leading-relaxed">
+              {point.targetPopulation}
+            </p>
+          </div>
+        )}
+
+        {/* Population Types Tags */}
         {point.populationTypes && point.populationTypes.length > 0 && (
           <div>
             <h4 className="text-xs font-bold uppercase tracking-wider text-stone-500 mb-2 flex items-center gap-1.5">
               <Users className="w-3.5 h-3.5 text-stone-500" />
-              Población Acompañada
+              Grupos Poblacionales
             </h4>
             <div className="flex flex-wrap gap-1.5">
               {point.populationTypes.map((pop, idx) => (
                 <span
                   key={idx}
-                  className="text-xs bg-amber-50 border border-amber-200 text-amber-900 px-2.5 py-1 rounded-full font-medium"
+                  className="text-xs bg-stone-100 border border-stone-200 text-stone-800 px-2.5 py-1 rounded-full font-medium"
                 >
                   {pop}
                 </span>
@@ -178,15 +220,43 @@ export const PointDetailDrawer: React.FC<PointDetailDrawerProps> = ({
           </div>
         )}
 
-        {/* Description */}
-        <div>
-          <h4 className="text-xs font-bold uppercase tracking-wider text-stone-500 mb-1">
-            Reseña de la Misión Humanitaria
-          </h4>
-          <p className="text-xs text-stone-700 leading-relaxed whitespace-pre-line bg-white p-3 rounded-xl border border-stone-100 shadow-xs">
-            {point.description || 'Sin descripción detallada registrada aún.'}
-          </p>
-        </div>
+        {/* Objectives */}
+        {point.objectives && (
+          <div>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-stone-500 mb-1 flex items-center gap-1.5">
+              <FileText className="w-3.5 h-3.5 text-stone-600" />
+              Objetivos del Proyecto
+            </h4>
+            <p className="text-xs text-stone-700 leading-relaxed bg-white p-3 rounded-xl border border-stone-200/70 shadow-2xs">
+              {point.objectives}
+            </p>
+          </div>
+        )}
+
+        {/* Description / Reseña */}
+        {point.description && point.description !== point.objectives && (
+          <div>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-stone-500 mb-1">
+              Reseña del Proyecto
+            </h4>
+            <p className="text-xs text-stone-700 leading-relaxed whitespace-pre-line bg-white p-3 rounded-xl border border-stone-100 shadow-xs">
+              {point.description}
+            </p>
+          </div>
+        )}
+
+        {/* Results & Achievements */}
+        {point.resultsOrAchievements && (
+          <div className="p-3 bg-emerald-50/60 border border-emerald-200 rounded-xl text-xs space-y-1.5">
+            <h4 className="text-[11px] font-bold uppercase tracking-wider text-emerald-900 flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              Resultados y Logros Alcanzados
+            </h4>
+            <p className="text-stone-800 text-xs leading-relaxed whitespace-pre-line">
+              {point.resultsOrAchievements}
+            </p>
+          </div>
+        )}
 
         {/* Key Actions */}
         {point.keyActions && point.keyActions.length > 0 && (

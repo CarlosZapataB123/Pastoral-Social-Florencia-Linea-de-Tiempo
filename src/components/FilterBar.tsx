@@ -83,7 +83,7 @@ export const FilterBar: React.FC<FiltersProps> = ({
             type="text"
             value={searchQuery}
             onChange={(e) => onChangeSearchQuery(e.target.value)}
-            placeholder="Buscar por vereda, tema, acción..."
+            placeholder="Buscar proyecto, financiador, población..."
             className="w-full pl-8 pr-3 py-1.5 text-xs bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-amber-500 focus:bg-white"
           />
           <Search className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-2" />

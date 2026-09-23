@@ -1,7 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { HumanitarianPoint, PointCategory } from '../types';
 import { CAQUETA_MUNICIPALITIES } from '../constants';
-import { X, MapPin, Calendar, Users, Bookmark, Check, Trash2, Plus, Tag, AlertCircle } from 'lucide-react';
+import {
+  X,
+  MapPin,
+  Calendar,
+  Users,
+  Bookmark,
+  Check,
+  Trash2,
+  Plus,
+  Tag,
+  AlertCircle,
+  Landmark,
+  Target,
+  FileText,
+  CheckCircle2,
+} from 'lucide-react';
 
 interface PointFormModalProps {
   isOpen: boolean;
@@ -46,6 +61,12 @@ export const PointFormModal: React.FC<PointFormModalProps> = ({
   const [status, setStatus] = useState<'active' | 'historical' | 'consolidated'>(
     pointToEdit?.status || 'active'
   );
+  const [fundingAgency, setFundingAgency] = useState(pointToEdit?.fundingAgency || '');
+  const [targetPopulation, setTargetPopulation] = useState(pointToEdit?.targetPopulation || '');
+  const [executionPeriod, setExecutionPeriod] = useState(pointToEdit?.executionPeriod || '');
+  const [objectives, setObjectives] = useState(pointToEdit?.objectives || '');
+  const [resultsOrAchievements, setResultsOrAchievements] = useState(pointToEdit?.resultsOrAchievements || '');
+
   const [keyActionInput, setKeyActionInput] = useState('');
   const [keyActions, setKeyActions] = useState<string[]>(pointToEdit?.keyActions || []);
   const [isSaving, setIsSaving] = useState(false);
@@ -63,6 +84,11 @@ export const PointFormModal: React.FC<PointFormModalProps> = ({
         setCommunityOrVereda(pointToEdit.communityOrVereda || '');
         setYear(pointToEdit.year || new Date().getFullYear());
         setEndYear(pointToEdit.endYear);
+        setFundingAgency(pointToEdit.fundingAgency || '');
+        setTargetPopulation(pointToEdit.targetPopulation || '');
+        setExecutionPeriod(pointToEdit.executionPeriod || '');
+        setObjectives(pointToEdit.objectives || '');
+        setResultsOrAchievements(pointToEdit.resultsOrAchievements || '');
         setCategoryId(pointToEdit.categoryId || categories[0]?.id || '');
         setSelectedPopulations(pointToEdit.populationTypes || []);
         setBeneficiariesApprox(pointToEdit.beneficiariesApprox);
@@ -75,6 +101,11 @@ export const PointFormModal: React.FC<PointFormModalProps> = ({
         setCommunityOrVereda('');
         setYear(new Date().getFullYear());
         setEndYear(undefined);
+        setFundingAgency('');
+        setTargetPopulation('');
+        setExecutionPeriod('');
+        setObjectives('');
+        setResultsOrAchievements('');
         setCategoryId(categories[0]?.id || '');
         setSelectedPopulations([]);
         setBeneficiariesApprox(undefined);
@@ -213,6 +244,11 @@ export const PointFormModal: React.FC<PointFormModalProps> = ({
         lng: Number(lng.toFixed(5)),
         year: Number(year),
         endYear: endYear ? Number(endYear) : undefined,
+        fundingAgency: fundingAgency.trim() || undefined,
+        targetPopulation: targetPopulation.trim() || undefined,
+        executionPeriod: executionPeriod.trim() || undefined,
+        objectives: objectives.trim() || undefined,
+        resultsOrAchievements: resultsOrAchievements.trim() || undefined,
         categoryId,
         populationTypes: selectedPopulations,
         beneficiariesApprox: beneficiariesApprox ? Number(beneficiariesApprox) : undefined,
@@ -228,7 +264,7 @@ export const PointFormModal: React.FC<PointFormModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 print:hidden">
       <div
         id="point-form-modal-card"
         className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl border border-stone-200 overflow-hidden flex flex-col max-h-[92vh]"
@@ -292,7 +328,7 @@ export const PointFormModal: React.FC<PointFormModalProps> = ({
               >
                 {CAQUETA_MUNICIPALITIES.map((m) => (
                   <option key={m.name} value={m.name}>
-                    {m.name} ({m.subregion})
+                    {m.name} ({m.jurisdiction})
                   </option>
                 ))}
               </select>
@@ -362,6 +398,38 @@ export const PointFormModal: React.FC<PointFormModalProps> = ({
                 <option value="consolidated">Comunitaria Consolidada</option>
                 <option value="historical">Histórica (Concluida)</option>
               </select>
+            </div>
+          </div>
+
+          {/* Funding Agency & Execution Period */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 bg-amber-50/50 rounded-xl border border-amber-200/80">
+            <div>
+              <label className="block text-xs font-bold text-amber-900 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                <Landmark className="w-3.5 h-3.5 text-amber-700" />
+                Agencia o Entidad Financiadora
+              </label>
+              <input
+                id="point-funding-agency-input"
+                type="text"
+                value={fundingAgency}
+                onChange={(e) => setFundingAgency(e.target.value)}
+                placeholder="Ej: MISEREOR, ADVENIAT, OIM, GIZ, SNPS..."
+                className="w-full px-3 py-2 text-sm bg-white border border-stone-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-amber-900 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-amber-700" />
+                Período / Fechas de Ejecución
+              </label>
+              <input
+                id="point-execution-period-input"
+                type="text"
+                value={executionPeriod}
+                onChange={(e) => setExecutionPeriod(e.target.value)}
+                placeholder="Ej: 01 de junio de 1988 al 30 de septiembre del 1992"
+                className="w-full px-3 py-2 text-sm bg-white border border-stone-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500"
+              />
             </div>
           </div>
 
@@ -477,11 +545,25 @@ export const PointFormModal: React.FC<PointFormModalProps> = ({
           </div>
 
           {/* Population Types (multi-select + quick create) */}
+          {/* Target Population specific */}
           <div className="p-3.5 bg-stone-50 rounded-xl border border-stone-200">
+            <label className="block text-xs font-bold text-stone-800 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+              <Target className="w-3.5 h-3.5 text-rose-600" />
+              Población Objetivo (Texto descriptivo)
+            </label>
+            <input
+              id="point-target-population-input"
+              type="text"
+              value={targetPopulation}
+              onChange={(e) => setTargetPopulation(e.target.value)}
+              placeholder="Ej: 300 familias campesinas colonas, mujeres víctimas del conflicto..."
+              className="w-full px-3 py-2 text-sm bg-white border border-stone-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 mb-3"
+            />
+
             <div className="flex items-center justify-between mb-2">
               <label className="text-xs font-bold text-stone-800 uppercase tracking-wider flex items-center gap-1.5">
                 <Users className="w-3.5 h-3.5 text-blue-600" />
-                Tipo de Población Beneficiaria
+                Categorías de Población Acompañada
               </label>
               <span className="text-[11px] text-stone-500">
                 {selectedPopulations.length} seleccionados
@@ -546,10 +628,26 @@ export const PointFormModal: React.FC<PointFormModalProps> = ({
             )}
           </div>
 
+          {/* Objectives */}
+          <div>
+            <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+              <FileText className="w-3.5 h-3.5 text-stone-600" />
+              Objetivos del Proyecto
+            </label>
+            <textarea
+              id="point-objectives-input"
+              rows={2}
+              value={objectives}
+              onChange={(e) => setObjectives(e.target.value)}
+              placeholder="Objetivo general y específicos del proyecto..."
+              className="w-full px-3 py-2 text-sm border border-stone-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500"
+            />
+          </div>
+
           {/* Description */}
           <div>
             <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-1">
-              Descripción de la Labor Humanitaria
+              Descripción o Reseña de la Labor Humanitaria
             </label>
             <textarea
               id="point-description-input"
@@ -557,6 +655,22 @@ export const PointFormModal: React.FC<PointFormModalProps> = ({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Detalla las acciones realizadas, logros, impacto y cómo se desarrolló la misión en este territorio..."
+              className="w-full px-3 py-2 text-sm border border-stone-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500"
+            />
+          </div>
+
+          {/* Results / Achievements */}
+          <div>
+            <label className="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              Resultados y Logros Alcanzados
+            </label>
+            <textarea
+              id="point-results-input"
+              rows={2}
+              value={resultsOrAchievements}
+              onChange={(e) => setResultsOrAchievements(e.target.value)}
+              placeholder="Resultados cuantitativos y cualitativos alcanzados (ej: 400 has reforestadas, 35 comités capacitados)..."
               className="w-full px-3 py-2 text-sm border border-stone-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500"
             />
           </div>

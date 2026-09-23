@@ -53,15 +53,53 @@
 
 /* Print Optimization for Timeline Report */
 @media print {
-  body {
-    background: #ffffff !important;
-    color: #1c1917 !important;
-    font-size: 12pt;
+  @page {
+    margin: 12mm 10mm 12mm 10mm;
+    size: letter portrait;
   }
 
-  /* Hide app navigation and controls during printing */
+  *,
+  *::before,
+  *::after {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  html,
+  body {
+    height: auto !important;
+    min-height: 100% !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    color: #1c1917 !important;
+    font-size: 10pt;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Force all React wrapper divs to be unconstrained and visible in normal page flow */
+  #root,
+  #root > div,
+  .h-screen,
+  .w-screen {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    position: static !important;
+    width: 100% !important;
+    display: block !important;
+    background: #ffffff !important;
+  }
+
+  /* Hide app navigation, filters, maps, mobile bars and dialog controls */
   #app-header,
   #filters-container,
+  #main-content-area,
+  #mobile-bottom-nav,
   .leaflet-container,
   .print\:hidden {
     display: none !important;
@@ -69,12 +107,16 @@
 
   #timeline-report-modal-overlay {
     position: static !important;
-    background: none !important;
+    background: transparent !important;
     padding: 0 !important;
+    margin: 0 !important;
     display: block !important;
     overflow: visible !important;
     inset: auto !important;
     z-index: auto !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
   }
 
   #timeline-report-container {
@@ -87,20 +129,34 @@
     overflow: visible !important;
     width: 100% !important;
     max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: block !important;
   }
 
   #printable-report-content {
     padding: 0 !important;
+    margin: 0 !important;
     overflow: visible !important;
     height: auto !important;
+    max-height: none !important;
+    display: block !important;
+    width: 100% !important;
   }
 
   /* Ensure timeline items do not split awkwardly across pages */
   .timeline-item,
   .item-card,
+  .metric-card,
+  article,
   tr {
-    break-inside: avoid;
-    page-break-inside: avoid;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  h1, h2, h3, h4 {
+    break-after: avoid !important;
+    page-break-after: avoid !important;
   }
 }
 

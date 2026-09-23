@@ -24,6 +24,7 @@ import { GitHubGuideModal } from './components/GitHubGuideModal';
 import { FilterBar } from './components/FilterBar';
 import { PointsListView } from './components/PointsListView';
 import { TimelineReportModal } from './components/TimelineReportModal';
+import { ProjectImportModal } from './components/ProjectImportModal';
 import {
   Plus,
   Map as MapIcon,
@@ -37,6 +38,7 @@ import {
   Smartphone,
   Sparkles,
   FileText,
+  Upload,
 } from 'lucide-react';
 
 export default function App() {
@@ -56,6 +58,7 @@ export default function App() {
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [isGitHubModalOpen, setIsGitHubModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // Filters State
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string | 'all'>('all');
@@ -179,8 +182,10 @@ export default function App() {
       if (selectedStatusFilter !== 'all' && pt.status !== selectedStatusFilter) {
         return false;
       }
-      // Year range filter
-      if (pt.year < yearRange[0] || pt.year > yearRange[1]) {
+      // Year range filter (supports multi-year execution)
+      const projectStart = pt.year;
+      const projectEnd = pt.endYear && pt.endYear >= pt.year ? pt.endYear : pt.year;
+      if (projectEnd < yearRange[0] || projectStart > yearRange[1]) {
         return false;
       }
       // Search query filter
@@ -191,7 +196,23 @@ export default function App() {
         const inMuni = pt.municipality.toLowerCase().includes(query);
         const inVereda = pt.communityOrVereda?.toLowerCase().includes(query) || false;
         const inActions = pt.keyActions?.some((a) => a.toLowerCase().includes(query)) || false;
-        if (!inTitle && !inDesc && !inMuni && !inVereda && !inActions) {
+        const inAgency = pt.fundingAgency?.toLowerCase().includes(query) || false;
+        const inTargetPop = pt.targetPopulation?.toLowerCase().includes(query) || false;
+        const inObj = pt.objectives?.toLowerCase().includes(query) || false;
+        const inPeriod = pt.executionPeriod?.toLowerCase().includes(query) || false;
+        const inRes = pt.resultsOrAchievements?.toLowerCase().includes(query) || false;
+        if (
+          !inTitle &&
+          !inDesc &&
+          !inMuni &&
+          !inVereda &&
+          !inActions &&
+          !inAgency &&
+          !inTargetPop &&
+          !inObj &&
+          !inPeriod &&
+          !inRes
+        ) {
           return false;
         }
       }
@@ -278,12 +299,28 @@ export default function App() {
       cleanPayload.endYear = pointData.endYear;
     }
 
-    if (
-      typeof pointData.beneficiariesApprox === 'number' &&
-      !isNaN(pointData.beneficiariesApprox) &&
-      pointData.beneficiariesApprox > 0
-    ) {
+    if (typeof pointData.beneficiariesApprox === 'number' && !isNaN(pointData.beneficiariesApprox) && pointData.beneficiariesApprox > 0) {
       cleanPayload.beneficiariesApprox = pointData.beneficiariesApprox;
+    }
+
+    if (pointData.fundingAgency && pointData.fundingAgency.trim()) {
+      cleanPayload.fundingAgency = pointData.fundingAgency.trim();
+    }
+
+    if (pointData.targetPopulation && pointData.targetPopulation.trim()) {
+      cleanPayload.targetPopulation = pointData.targetPopulation.trim();
+    }
+
+    if (pointData.executionPeriod && pointData.executionPeriod.trim()) {
+      cleanPayload.executionPeriod = pointData.executionPeriod.trim();
+    }
+
+    if (pointData.objectives && pointData.objectives.trim()) {
+      cleanPayload.objectives = pointData.objectives.trim();
+    }
+
+    if (pointData.resultsOrAchievements && pointData.resultsOrAchievements.trim()) {
+      cleanPayload.resultsOrAchievements = pointData.resultsOrAchievements.trim();
     }
 
     // Guardar el documento completo en Firestore
@@ -300,6 +337,55 @@ export default function App() {
     if (pointToEdit?.id === pointId) {
       setPointToEdit(null);
       setIsPointModalOpen(false);
+    }
+  };
+
+  const handleBulkImportPoints = async (
+    pointsToImport: Omit<HumanitarianPoint, 'id' | 'createdAt' | 'updatedAt'>[]
+  ) => {
+    for (const pt of pointsToImport) {
+      const pointId = `pt_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      const pointRef = doc(db, 'points', pointId);
+      const cleanPayload: Record<string, any> = {
+        id: pointId,
+        title: pt.title.trim(),
+        description: pt.description ? pt.description.trim() : '',
+        municipality: pt.municipality || 'Florencia',
+        communityOrVereda: pt.communityOrVereda ? pt.communityOrVereda.trim() : '',
+        lat: Number(pt.lat),
+        lng: Number(pt.lng),
+        year: Number(pt.year),
+        categoryId: pt.categoryId,
+        status: pt.status || 'active',
+        populationTypes: Array.isArray(pt.populationTypes) ? pt.populationTypes : [],
+        keyActions: Array.isArray(pt.keyActions) ? pt.keyActions : [],
+        updatedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+      };
+
+      if (typeof pt.endYear === 'number' && !isNaN(pt.endYear) && pt.endYear > 0) {
+        cleanPayload.endYear = pt.endYear;
+      }
+      if (typeof pt.beneficiariesApprox === 'number' && !isNaN(pt.beneficiariesApprox) && pt.beneficiariesApprox > 0) {
+        cleanPayload.beneficiariesApprox = pt.beneficiariesApprox;
+      }
+      if (pt.fundingAgency && pt.fundingAgency.trim()) {
+        cleanPayload.fundingAgency = pt.fundingAgency.trim();
+      }
+      if (pt.targetPopulation && pt.targetPopulation.trim()) {
+        cleanPayload.targetPopulation = pt.targetPopulation.trim();
+      }
+      if (pt.executionPeriod && pt.executionPeriod.trim()) {
+        cleanPayload.executionPeriod = pt.executionPeriod.trim();
+      }
+      if (pt.objectives && pt.objectives.trim()) {
+        cleanPayload.objectives = pt.objectives.trim();
+      }
+      if (pt.resultsOrAchievements && pt.resultsOrAchievements.trim()) {
+        cleanPayload.resultsOrAchievements = pt.resultsOrAchievements.trim();
+      }
+
+      await setDoc(pointRef, cleanPayload);
     }
   };
 
@@ -387,11 +473,11 @@ export default function App() {
   };
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-stone-100 font-sans text-stone-900">
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-stone-100 font-sans text-stone-900 print:h-auto print:w-auto print:overflow-visible print:bg-white print:block">
       {/* Top Navigation Bar */}
       <header
         id="app-header"
-        className="bg-stone-900 text-white px-3 sm:px-6 py-2.5 flex items-center justify-between border-b border-stone-800 shrink-0 z-20"
+        className="bg-stone-900 text-white px-3 sm:px-6 py-2.5 flex items-center justify-between border-b border-stone-800 shrink-0 z-20 print:hidden"
       >
         <div className="flex items-center gap-2.5 sm:gap-3">
           <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-600 flex items-center justify-center text-white shadow-xs font-bold text-sm shrink-0">
@@ -443,6 +529,18 @@ export default function App() {
               </button>
             </div>
           )}
+
+          {/* Import Projects button */}
+          <button
+            id="open-project-import-btn"
+            onClick={() => setIsImportModalOpen(true)}
+            className="px-2.5 sm:px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition border border-emerald-500/60 shadow-xs"
+            title="Incorporar proyectos con Financiador, Años y Población a las 5 Líneas"
+          >
+            <Upload className="w-3.5 h-3.5 text-emerald-200" />
+            <span className="hidden sm:inline">Incorporar Proyectos</span>
+            <span className="sm:hidden">Incorporar</span>
+          </button>
 
           {/* Categories Modal button */}
           <button
@@ -506,30 +604,32 @@ export default function App() {
       </header>
 
       {/* Filter and timeline bar */}
-      <FilterBar
-        categories={categories}
-        populationTypes={allPopulationTypes}
-        selectedCategoryId={selectedCategoryFilter}
-        onSelectCategory={setSelectedCategoryFilter}
-        selectedMunicipality={selectedMunicipalityFilter}
-        onSelectMunicipality={setSelectedMunicipalityFilter}
-        selectedPopulation={selectedPopulationFilter}
-        onSelectPopulation={setSelectedPopulationFilter}
-        selectedStatus={selectedStatusFilter}
-        onSelectStatus={setSelectedStatusFilter}
-        yearRange={yearRange}
-        onChangeYearRange={setYearRange}
-        searchQuery={searchQuery}
-        onChangeSearchQuery={setSearchQuery}
-        onResetFilters={handleResetFilters}
-        totalFiltered={filteredPoints.length}
-        totalPoints={points.length}
-        onOpenReport={() => setIsReportModalOpen(true)}
-        onOpenCategoryManager={() => setIsCategoryModalOpen(true)}
-      />
+      <div id="filters-container" className="print:hidden">
+        <FilterBar
+          categories={categories}
+          populationTypes={allPopulationTypes}
+          selectedCategoryId={selectedCategoryFilter}
+          onSelectCategory={setSelectedCategoryFilter}
+          selectedMunicipality={selectedMunicipalityFilter}
+          onSelectMunicipality={setSelectedMunicipalityFilter}
+          selectedPopulation={selectedPopulationFilter}
+          onSelectPopulation={setSelectedPopulationFilter}
+          selectedStatus={selectedStatusFilter}
+          onSelectStatus={setSelectedStatusFilter}
+          yearRange={yearRange}
+          onChangeYearRange={setYearRange}
+          searchQuery={searchQuery}
+          onChangeSearchQuery={setSearchQuery}
+          onResetFilters={handleResetFilters}
+          totalFiltered={filteredPoints.length}
+          totalPoints={points.length}
+          onOpenReport={() => setIsReportModalOpen(true)}
+          onOpenCategoryManager={() => setIsCategoryModalOpen(true)}
+        />
+      </div>
 
       {/* Main Content Area */}
-      <div className="relative flex-1 flex overflow-hidden">
+      <div id="main-content-area" className="relative flex-1 flex overflow-hidden print:hidden">
         {activeTab === 'map' ? (
           <MapView
             points={filteredPoints}
@@ -557,6 +657,7 @@ export default function App() {
               onDeletePoint={handleDeletePoint}
               onAddNewPoint={handleStartAddingPoint}
               onOpenReport={() => setIsReportModalOpen(true)}
+              onOpenImport={() => setIsImportModalOpen(true)}
             />
           </div>
         )}
@@ -574,7 +675,7 @@ export default function App() {
       </div>
 
       {/* Bottom Floating Navigation for Mobile & Quick Switch */}
-      <div className="sm:hidden bg-white border-t border-stone-200 p-2 flex items-center justify-around z-20">
+      <div id="mobile-bottom-nav" className="sm:hidden bg-white border-t border-stone-200 p-2 flex items-center justify-around z-20 print:hidden">
         <button
           onClick={() => setActiveTab('map')}
           className={`flex-1 py-1.5 flex flex-col items-center gap-0.5 rounded-lg text-[11px] font-semibold ${
@@ -638,6 +739,14 @@ export default function App() {
         populationTypes={populationTypes}
         onAddPopulationType={handleAddPopulationType}
         onDeletePopulationType={handleDeletePopulationType}
+      />
+
+      {/* Project Import Modal */}
+      <ProjectImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        categories={categories}
+        onImportPoints={handleBulkImportPoints}
       />
 
       {/* GitHub & Deployment Guide Modal */}
